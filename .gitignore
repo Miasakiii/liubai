@@ -1,0 +1,14 @@
+# 忽略docs文件夹
+docs/
+
+# 忽略Office文档
+*.pptx
+*.docx
+*.xlsx
+
+# 常用忽略项
+node_modules/
+.DS_Store
+*.log
+.env
+.env.local

@@ -1,0 +1,1313 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>留白 — AI 健康留白系统</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@200;300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7f5f0;
+    --text: #2c2c2c;
+    --text-light: #9a9a9a;
+    --text-muted: #c5c0b8;
+    --accent: #c4a882;
+    --accent-soft: #e8ddd0;
+    --accent-glow: rgba(196, 168, 130, 0.15);
+    --white: #ffffff;
+    --card: rgba(255,255,255,0.7);
+    --shadow-sm: 0 1px 8px rgba(0,0,0,0.03);
+    --shadow-md: 0 4px 24px rgba(0,0,0,0.05);
+    --shadow-lg: 0 8px 40px rgba(0,0,0,0.06);
+    --radius: 20px;
+    --transition: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { font-size: 16px; }
+
+  body {
+    font-family: 'Noto Serif SC', 'Songti SC', serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* ===== 动画 ===== */
+  @keyframes breathe {
+    0%, 100% { transform: scale(1); opacity: 0.5; }
+    50% { transform: scale(1.06); opacity: 0.8; }
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.85); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes ripple {
+    0% { transform: scale(0); opacity: 0.6; }
+    100% { transform: scale(2.5); opacity: 0; }
+  }
+
+  @keyframes breatheRing {
+    0% { transform: translate(-50%,-50%) scale(1); opacity: 0.3; }
+    50% { transform: translate(-50%,-50%) scale(1.4); opacity: 0; }
+    100% { transform: translate(-50%,-50%) scale(1); opacity: 0.3; }
+  }
+
+  @keyframes breatheCircle {
+    0%, 100% { transform: scale(0.85); }
+    50% { transform: scale(1); }
+  }
+
+  @keyframes dotPulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
+  }
+
+  @keyframes pageEnter {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes calendarDot {
+    from { opacity: 0; transform: scale(0.4); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  /* ===== 页面 ===== */
+  .page {
+    display: none;
+    min-height: 100vh;
+    min-height: 100dvh;
+    position: relative;
+  }
+
+  .page.active {
+    display: flex;
+    flex-direction: column;
+    animation: pageEnter 0.5s var(--transition);
+  }
+
+  /* ===== 背景装饰 ===== */
+  .bg-orb {
+    position: fixed;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+    filter: blur(60px);
+  }
+
+  .bg-orb-1 {
+    width: 280px; height: 280px;
+    background: var(--accent-glow);
+    top: 30%; left: 50%;
+    transform: translate(-50%, -50%);
+    animation: breathe 8s ease-in-out infinite;
+  }
+
+  .bg-orb-2 {
+    width: 180px; height: 180px;
+    background: rgba(126, 184, 201, 0.08);
+    top: 60%; left: 30%;
+    animation: breathe 10s ease-in-out infinite 2s;
+  }
+
+  /* ===== 首页 ===== */
+  #page-home {
+    justify-content: center;
+    align-items: center;
+    padding: 40px 24px 100px;
+    text-align: center;
+  }
+
+  .home-content {
+    position: relative;
+    z-index: 1;
+    max-width: 340px;
+    width: 100%;
+  }
+
+  .brand {
+    font-size: 11px;
+    letter-spacing: 8px;
+    color: var(--text-muted);
+    margin-bottom: 72px;
+    text-transform: uppercase;
+    animation: fadeIn 1s ease;
+  }
+
+  .home-question {
+    font-size: 28px;
+    font-weight: 200;
+    line-height: 1.5;
+    margin-bottom: 56px;
+    letter-spacing: 2px;
+    animation: slideDown 0.8s var(--transition) 0.2s both;
+  }
+
+  .mood-row {
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+    margin-bottom: 48px;
+    animation: fadeIn 0.6s ease 0.5s both;
+  }
+
+  .mood-btn {
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    border: none;
+    background: var(--card);
+    backdrop-filter: blur(8px);
+    font-size: 26px;
+    cursor: pointer;
+    transition: all 0.35s var(--transition);
+    box-shadow: var(--shadow-sm);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .mood-btn:hover {
+    transform: translateY(-4px) scale(1.08);
+    box-shadow: var(--shadow-md);
+    background: var(--white);
+  }
+
+  .mood-btn:active {
+    transform: translateY(0) scale(0.95);
+    transition-duration: 0.1s;
+  }
+
+  .mood-btn .ripple-effect {
+    position: absolute;
+    width: 100%; height: 100%;
+    border-radius: 50%;
+    background: var(--accent);
+    opacity: 0.3;
+    animation: ripple 0.5s ease-out forwards;
+    pointer-events: none;
+  }
+
+  .skip-btn {
+    font-size: 13px;
+    color: var(--text-light);
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-family: inherit;
+    padding: 8px 16px;
+    transition: all 0.3s;
+    animation: fadeIn 0.6s ease 0.8s both;
+    -webkit-tap-highlight-color: transparent;
+    border-bottom: 1px solid transparent;
+  }
+
+  .skip-btn:hover {
+    color: var(--text);
+    border-bottom-color: var(--text-muted);
+  }
+
+  .home-footer {
+    position: absolute;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+    animation: fadeIn 1s ease 1s both;
+  }
+
+  /* ===== AI 回应页 ===== */
+  #page-response {
+    justify-content: flex-start;
+    align-items: center;
+    padding: 80px 28px 100px;
+  }
+
+  .resp-container {
+    max-width: 380px;
+    width: 100%;
+    text-align: center;
+  }
+
+  .resp-emoji {
+    font-size: 52px;
+    margin-bottom: 48px;
+    animation: float 5s ease-in-out infinite;
+    filter: drop-shadow(0 4px 12px rgba(0,0,0,0.06));
+  }
+
+  .resp-text {
+    font-size: 17px;
+    font-weight: 300;
+    line-height: 2;
+    letter-spacing: 0.5px;
+    margin-bottom: 36px;
+    min-height: 100px;
+  }
+
+  .resp-line {
+    opacity: 0;
+    animation: slideUp 0.6s var(--transition) forwards;
+    margin-bottom: 4px;
+  }
+
+  .resp-line:nth-child(1) { animation-delay: 0.4s; }
+  .resp-line:nth-child(2) { animation-delay: 1.1s; }
+  .resp-line:nth-child(3) { animation-delay: 1.8s; }
+  .resp-line:nth-child(4) { animation-delay: 2.5s; }
+  .resp-line:nth-child(5) { animation-delay: 3.2s; }
+
+  /* 加载状态 */
+  .loading-dots {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    padding: 40px 0;
+  }
+
+  .loading-dots span {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: dotPulse 1.2s ease-in-out infinite;
+  }
+
+  .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+  /* 呼吸引导 */
+  .breath-guide {
+    display: none;
+    margin: 32px auto;
+    width: 140px;
+    height: 140px;
+    position: relative;
+    animation: scaleIn 0.6s var(--transition);
+  }
+
+  .breath-guide.active { display: block; }
+
+  .breath-circle {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 40%, var(--accent-soft), var(--accent));
+    animation: breatheCircle 12s ease-in-out infinite;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 40px var(--accent-glow);
+  }
+
+  .breath-label {
+    font-size: 14px;
+    font-weight: 300;
+    color: var(--text);
+    letter-spacing: 2px;
+  }
+
+  .breath-ring {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 100%; height: 100%;
+    border-radius: 50%;
+    border: 1px solid var(--accent);
+    animation: breatheRing 4s ease-in-out infinite;
+  }
+
+  /* 音频播放器 */
+  .player-card {
+    display: none;
+    margin: 24px auto;
+    padding: 14px 20px;
+    background: var(--card);
+    backdrop-filter: blur(12px);
+    border-radius: 16px;
+    box-shadow: var(--shadow-sm);
+    max-width: 260px;
+    animation: scaleIn 0.4s var(--transition);
+  }
+
+  .player-card.active { display: block; }
+
+  .player-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .player-name {
+    font-size: 13px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .player-icon {
+    font-size: 16px;
+  }
+
+  .player-duration {
+    font-size: 11px;
+    color: var(--text-light);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .player-bar {
+    width: 100%;
+    height: 2px;
+    background: var(--accent-soft);
+    border-radius: 1px;
+    overflow: hidden;
+  }
+
+  .player-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 1px;
+    width: 0%;
+    transition: width 1s linear;
+  }
+
+  /* 完成按钮 */
+  .done-btn {
+    margin-top: 44px;
+    padding: 12px 36px;
+    border: 1px solid var(--accent);
+    background: transparent;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 300;
+    letter-spacing: 2px;
+    border-radius: 28px;
+    cursor: pointer;
+    transition: all 0.35s var(--transition);
+    opacity: 0;
+    animation: fadeIn 0.5s ease 3.5s forwards;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .done-btn:hover {
+    background: var(--accent);
+    color: var(--white);
+    box-shadow: var(--shadow-md);
+  }
+
+  /* ===== 日历页 ===== */
+  #page-calendar {
+    padding: 64px 24px 100px;
+    align-items: center;
+  }
+
+  .cal-header {
+    text-align: center;
+    margin-bottom: 36px;
+    width: 100%;
+    max-width: 380px;
+  }
+
+  .cal-month {
+    font-size: 22px;
+    font-weight: 200;
+    letter-spacing: 4px;
+    margin-bottom: 6px;
+  }
+
+  .cal-sub {
+    font-size: 12px;
+    color: var(--text-light);
+    letter-spacing: 1px;
+  }
+
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    max-width: 350px;
+    width: 100%;
+    margin-bottom: 32px;
+  }
+
+  .cal-weekday {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    padding: 6px 0 10px;
+    letter-spacing: 1px;
+  }
+
+  .cal-day {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    border-radius: 12px;
+    background: transparent;
+    cursor: default;
+    animation: calendarDot 0.25s var(--transition) both;
+  }
+
+  .cal-day.has-data {
+    background: var(--card);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .cal-day.is-today {
+    outline: 1.5px solid var(--accent);
+    outline-offset: 3px;
+  }
+
+  .cal-day .dot {
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: var(--text-muted);
+  }
+
+  .cal-day.future {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .cal-summary {
+    max-width: 350px;
+    width: 100%;
+    text-align: center;
+    padding: 24px 20px;
+    background: var(--card);
+    backdrop-filter: blur(12px);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 28px;
+    animation: slideUp 0.5s var(--transition) 0.3s both;
+  }
+
+  .cal-summary-text {
+    font-size: 14px;
+    font-weight: 300;
+    line-height: 1.9;
+    color: var(--text);
+    white-space: pre-line;
+  }
+
+  .cal-back {
+    font-size: 12px;
+    color: var(--text-light);
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-family: inherit;
+    padding: 8px;
+    transition: color 0.3s;
+    letter-spacing: 1px;
+  }
+
+  .cal-back:hover { color: var(--text); }
+
+  /* ===== 设置页 ===== */
+  #page-settings {
+    padding: 64px 24px 100px;
+    align-items: center;
+  }
+
+  .settings-wrap {
+    max-width: 380px;
+    width: 100%;
+  }
+
+  .settings-title {
+    font-size: 20px;
+    font-weight: 200;
+    text-align: center;
+    margin-bottom: 40px;
+    letter-spacing: 4px;
+  }
+
+  .setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 0;
+    border-bottom: 1px solid rgba(0,0,0,0.04);
+  }
+
+  .setting-info { flex: 1; }
+
+  .setting-name {
+    font-size: 14px;
+    font-weight: 400;
+    margin-bottom: 3px;
+  }
+
+  .setting-desc {
+    font-size: 12px;
+    color: var(--text-light);
+  }
+
+  .toggle {
+    width: 42px;
+    height: 24px;
+    background: #d8d3cb;
+    border-radius: 12px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.3s;
+    border: none;
+    flex-shrink: 0;
+    margin-left: 16px;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .toggle.on { background: var(--accent); }
+
+  .toggle::after {
+    content: '';
+    width: 20px; height: 20px;
+    background: white;
+    border-radius: 50%;
+    position: absolute;
+    top: 2px; left: 2px;
+    transition: transform 0.3s var(--transition);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+
+  .toggle.on::after { transform: translateX(18px); }
+
+  /* ===== 底部导航 ===== */
+  .nav-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0; right: 0;
+    display: flex;
+    justify-content: center;
+    gap: 48px;
+    padding: 12px 20px calc(12px + env(safe-area-inset-bottom, 0px));
+    background: linear-gradient(to top, var(--bg) 60%, transparent);
+    z-index: 100;
+  }
+
+  .nav-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    background: none;
+    border: none;
+    font-family: inherit;
+    font-size: 10px;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px 12px;
+    transition: color 0.3s;
+    letter-spacing: 1px;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .nav-btn.active { color: var(--text); }
+
+  .nav-dot {
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    transition: all 0.3s;
+  }
+
+  .nav-btn.active .nav-dot {
+    background: var(--accent);
+    width: 16px;
+    border-radius: 2px;
+  }
+
+  /* ===== AI 状态指示 ===== */
+  .ai-badge {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    font-size: 10px;
+    color: var(--text-muted);
+    background: var(--card);
+    padding: 4px 10px;
+    border-radius: 10px;
+    backdrop-filter: blur(8px);
+    z-index: 100;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .ai-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: #ccc;
+  }
+
+  .ai-dot.live { background: #8fbc8f; }
+
+  /* ===== 欢迎引导（首次使用） ===== */
+  .onboarding-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(247,245,240,0.95);
+    backdrop-filter: blur(20px);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    animation: fadeIn 0.6s ease;
+    transition: opacity 0.5s ease;
+  }
+
+  .onboarding-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .onboarding-card {
+    text-align: center;
+    max-width: 320px;
+    padding: 40px 24px;
+    animation: slideUp 0.8s var(--transition) 0.2s both;
+  }
+
+  .onboarding-icon {
+    font-size: 40px;
+    margin-bottom: 32px;
+    opacity: 0.6;
+  }
+
+  .onboarding-title {
+    font-size: 22px;
+    font-weight: 200;
+    letter-spacing: 3px;
+    margin-bottom: 24px;
+    color: var(--text);
+  }
+
+  .onboarding-desc {
+    font-size: 14px;
+    font-weight: 300;
+    line-height: 2;
+    color: var(--text-light);
+    margin-bottom: 40px;
+  }
+
+  .onboarding-start {
+    padding: 12px 40px;
+    border: 1px solid var(--accent);
+    background: transparent;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 300;
+    letter-spacing: 3px;
+    border-radius: 28px;
+    cursor: pointer;
+    transition: all 0.35s var(--transition);
+  }
+
+  .onboarding-start:hover {
+    background: var(--accent);
+    color: var(--white);
+  }
+
+  /* ===== 页面转场遮罩 ===== */
+  .page-transition {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 500;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .page-transition.active {
+    opacity: 1;
+  }
+
+  /* ===== 节气/天气关怀条 ===== */
+  .season-bar {
+    position: fixed;
+    top: 44px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+    z-index: 50;
+    opacity: 0;
+    animation: fadeIn 1s ease 1.5s forwards;
+    max-width: 300px;
+    text-align: center;
+  }
+
+  /* ===== 响应式 ===== */
+  @media (max-width: 375px) {
+    .mood-btn { width: 48px; height: 48px; font-size: 22px; }
+    .home-question { font-size: 24px; }
+    .resp-text { font-size: 16px; }
+    .mood-row { gap: 10px; }
+  }
+
+  @media (min-width: 768px) {
+    .mood-btn { width: 60px; height: 60px; font-size: 30px; }
+    .home-question { font-size: 32px; }
+    .mood-row { gap: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 首次使用引导 -->
+<div class="onboarding-overlay" id="onboarding">
+  <div class="onboarding-card">
+    <div class="onboarding-icon">○</div>
+    <h2 class="onboarding-title">留  白</h2>
+    <p class="onboarding-desc">
+      这里没有打卡，没有指标，没有排名。<br>
+      只有一个问题：今天，还好吗？<br><br>
+      你随时可以离开，随时可以回来。<br>
+      这里一直在。
+    </p>
+    <button class="onboarding-start" onclick="closeOnboarding()">开始</button>
+  </div>
+</div>
+
+<!-- 页面转场 -->
+<div class="page-transition" id="pageTransition"></div>
+
+<!-- 节气关怀 -->
+<div class="season-bar" id="seasonBar"></div>
+
+<!-- 背景装饰 -->
+<div class="bg-orb bg-orb-1"></div>
+<div class="bg-orb bg-orb-2"></div>
+
+<!-- AI 状态 -->
+<div class="ai-badge" id="aiBadge">
+  <span class="ai-dot" id="aiDot"></span>
+  <span id="aiLabel">检查中</span>
+</div>
+
+<!-- ==================== 首页 ==================== -->
+<div id="page-home" class="page active">
+  <div class="home-content">
+    <div class="brand">留 白</div>
+    <h1 class="home-question">今天，还好吗？</h1>
+    <div class="mood-row">
+      <button class="mood-btn" data-mood="great" onclick="selectMood('great',this)">😊</button>
+      <button class="mood-btn" data-mood="good" onclick="selectMood('good',this)">🙂</button>
+      <button class="mood-btn" data-mood="neutral" onclick="selectMood('neutral',this)">😐</button>
+      <button class="mood-btn" data-mood="low" onclick="selectMood('low',this)">😔</button>
+      <button class="mood-btn" data-mood="bad" onclick="selectMood('bad',this)">😫</button>
+    </div>
+    <button class="skip-btn" onclick="selectMood('skip',null)">今天不想说</button>
+  </div>
+  <div class="home-footer">AI 健康留白系统</div>
+</div>
+
+<!-- ==================== AI 回应页 ==================== -->
+<div id="page-response" class="page">
+  <div class="resp-container">
+    <div class="resp-emoji" id="respEmoji"></div>
+    <div class="resp-text" id="respText"></div>
+    <div class="breath-guide" id="breathGuide">
+      <div class="breath-ring"></div>
+      <div class="breath-circle">
+        <span class="breath-label" id="breathLabel">吸 …</span>
+      </div>
+    </div>
+    <div class="player-card" id="playerCard">
+      <div class="player-header">
+        <span class="player-name"><span class="player-icon" id="playerIcon">🌧</span><span id="playerName">雨声</span></span>
+        <span class="player-duration" id="playerTime">1:30</span>
+      </div>
+      <div class="player-bar">
+        <div class="player-bar-fill" id="playerFill"></div>
+      </div>
+    </div>
+    <button class="done-btn" onclick="goHome()">完 成</button>
+  </div>
+</div>
+
+<!-- ==================== 日历页 ==================== -->
+<div id="page-calendar" class="page">
+  <div class="cal-header">
+    <h2 class="cal-month" id="calMonth">五月</h2>
+    <p class="cal-sub">你的情绪日历</p>
+  </div>
+  <div class="cal-grid" id="calGrid"></div>
+  <div class="cal-summary">
+    <p class="cal-summary-text" id="calSummary"></p>
+  </div>
+  <button class="cal-back" onclick="goHome()">← 回到今天</button>
+</div>
+
+<!-- ==================== 设置页 ==================== -->
+<div id="page-settings" class="page">
+  <div class="settings-wrap">
+    <h2 class="settings-title">设 置</h2>
+    <div class="setting-row">
+      <div class="setting-info">
+        <div class="setting-name">温柔提醒</div>
+        <div class="setting-desc">一天最多一次，一句话的温度</div>
+      </div>
+      <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+    </div>
+    <div class="setting-row">
+      <div class="setting-info">
+        <div class="setting-name">呼吸引导</div>
+        <div class="setting-desc">低落时自动展示呼吸练习</div>
+      </div>
+      <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+    </div>
+    <div class="setting-row">
+      <div class="setting-info">
+        <div class="setting-name">白噪音</div>
+        <div class="setting-desc">回应时播放环境音</div>
+      </div>
+      <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+    </div>
+    <div class="setting-row">
+      <div class="setting-info">
+        <div class="setting-name">情绪周报</div>
+        <div class="setting-desc">每周日生成一段温暖的回顾</div>
+      </div>
+      <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 底部导航 ==================== -->
+<div class="nav-bar" id="navBar">
+  <button class="nav-btn active" data-page="home" onclick="goTo('home')">
+    <span class="nav-dot"></span><span>今天</span>
+  </button>
+  <button class="nav-btn" data-page="calendar" onclick="goTo('calendar')">
+    <span class="nav-dot"></span><span>日历</span>
+  </button>
+  <button class="nav-btn" data-page="settings" onclick="goTo('settings')">
+    <span class="nav-dot"></span><span>设置</span>
+  </button>
+</div>
+
+<script>
+// ============ 配置 ============
+const API_BASE = location.protocol + '//' + location.hostname + ':3001';
+const STORAGE_KEY = 'liubai_records';
+
+// ============ 数据层 ============
+function getRecords() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+  catch { return {}; }
+}
+
+function saveRecord(date, mood) {
+  const r = getRecords();
+  r[date] = { mood, ts: Date.now() };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(r));
+}
+
+function today() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function todayCount() {
+  return getRecords()[today()] ? 1 : 0;
+}
+
+// ============ 情绪映射 ============
+const MOOD = {
+  great:   { e: '😊', label: '很好' },
+  good:    { e: '🙂', label: '还好' },
+  neutral: { e: '😐', label: '一般' },
+  low:     { e: '😔', label: '不好' },
+  bad:     { e: '😫', label: '很累' },
+  skip:    { e: '🌙', label: '不说' }
+};
+
+const AUDIO_ICONS = {
+  '雨声': '🌧', '海浪': '🌊', '壁炉': '🔥', '风铃': '🎐', '深夜书店': '📚'
+};
+
+// ============ 页面管理 ============
+let curPage = 'home';
+
+function showPage(name) {
+  // 转场动画
+  const trans = document.getElementById('pageTransition');
+  trans.classList.add('active');
+
+  setTimeout(() => {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + name).classList.add('active');
+
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    const btn = document.querySelector(`.nav-btn[data-page="${name}"]`);
+    if (btn) btn.classList.add('active');
+
+    curPage = name;
+    if (name === 'calendar') renderCalendar();
+
+    setTimeout(() => trans.classList.remove('active'), 80);
+  }, 200);
+}
+
+function goTo(name) { showPage(name); }
+
+function goHome() {
+  document.getElementById('breathGuide').classList.remove('active');
+  document.getElementById('playerCard').classList.remove('active');
+  if (window._breathTimer) clearTimeout(window._breathTimer);
+  if (window._playerTimer) clearInterval(window._playerTimer);
+  showPage('home');
+}
+
+// ============ 情绪选择 ============
+function selectMood(mood, btn) {
+  if (btn) {
+    const rip = document.createElement('span');
+    rip.className = 'ripple-effect';
+    btn.appendChild(rip);
+    setTimeout(() => rip.remove(), 500);
+  }
+  saveRecord(today(), mood);
+  setTimeout(() => showResponse(mood), 350);
+}
+
+// ============ AI 回应 ============
+async function showResponse(mood) {
+  const emoji = MOOD[mood]?.e || '🌙';
+  document.getElementById('respEmoji').textContent = emoji;
+  document.getElementById('respText').innerHTML = '';
+
+  // 显示加载
+  const textEl = document.getElementById('respText');
+  textEl.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
+
+  document.getElementById('breathGuide').classList.remove('active');
+  document.getElementById('playerCard').classList.remove('active');
+
+  showPage('response');
+
+  // 请求 AI
+  try {
+    const now = new Date();
+    const timeStr = now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0');
+
+    const resp = await fetch(API_BASE + '/api/respond', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        mood,
+        time: timeStr,
+        weather: '',
+        count: todayCount()
+      })
+    });
+
+    const data = await resp.json();
+    renderAIResponse(data.text, data.action, emoji);
+  } catch (e) {
+    // 离线兜底
+    renderOfflineResponse(mood, emoji);
+  }
+}
+
+function renderAIResponse(text, action, emoji) {
+  const textEl = document.getElementById('respText');
+  const lines = text.split('\n').filter(l => l.trim());
+  textEl.innerHTML = lines.map((l, i) =>
+    `<div class="resp-line" style="animation-delay:${0.4 + i * 0.7}s">${l}</div>`
+  ).join('');
+
+  handleAction(action);
+}
+
+function renderOfflineResponse(mood, emoji) {
+  const OFFLINE = {
+    great: [
+      { t: '嘿，看起来今天状态不错。\n\n趁着心情好，出门走走吧。不用走远，楼下的风就够。\n\n好天气别浪费。去吧。', a: 'none' },
+      { t: '嗯，今天挺好。\n\n把这个感觉记住。下次不好的时候，想想今天。\n\n好了，去做你的事吧。', a: 'none' }
+    ],
+    good: [
+      { t: '还好就好。\n\n去接杯水吧。站着喝，别坐着。\n\n就这样。下午见。', a: 'none' },
+      { t: '不好不坏，也是一种不错。\n\n站起来伸个懒腰，把肩膀松一松。\n\n够了，去忙吧。', a: 'none' }
+    ],
+    neutral: [
+      { t: '不说话也没关系。\n\n我帮你留了一段安静。90 秒，什么都不用做。\n\n听就行。', a: 'audio:雨声' },
+      { t: '不想说就不说。\n\n深呼吸三次，跟着节奏：吸……屏住……呼。\n\n好了，今天的沉默就留在这里。', a: 'breathe' }
+    ],
+    low: [
+      { t: '嗯，不太好也没关系。\n\n不用解释原因。\n\n我帮你留了一段雨声。90 秒，什么都不用做，听就行。', a: 'audio:雨声' },
+      { t: '今天有点沉吧。\n\n站起来走到窗边，看 30 秒远处。我等你。\n\n回来了？嗯，今天的"不好"就留在这里。明天见。', a: 'none' }
+    ],
+    bad: [
+      { t: '今天挺累的吧。\n\n别撑了。深呼吸三次，跟着这个节奏：吸……屏住……呼。\n\n做完就去休息。明天的事明天再说。晚安。', a: 'breathe' },
+      { t: '嗯，我看到了。\n\n不需要解释，不需要坚强。\n\n听一段海浪声吧。什么都不用想。90 秒就好。', a: 'audio:海浪' }
+    ],
+    skip: [
+      { t: '好的，不说也行。\n\n今天就安静待一会儿。\n\n我在这里，不走。明天见。', a: 'none' },
+      { t: '嗯。\n\n有时候什么都不想说，就是一种回答。\n\n去忙你的吧。', a: 'none' }
+    ]
+  };
+
+  const list = OFFLINE[mood] || OFFLINE.neutral;
+  const pick = list[Math.floor(Math.random() * list.length)];
+  renderAIResponse(pick.t, pick.a, emoji);
+}
+
+// ============ 动作处理 ============
+function handleAction(action) {
+  if (!action || action === 'none') return;
+
+  if (action === 'breathe') {
+    const guide = document.getElementById('breathGuide');
+    guide.classList.add('active');
+    startBreathing();
+  }
+
+  if (action.startsWith('audio:')) {
+    const name = action.split(':')[1];
+    const card = document.getElementById('playerCard');
+    document.getElementById('playerIcon').textContent = AUDIO_ICONS[name] || '🎵';
+    document.getElementById('playerName').textContent = name;
+    card.classList.add('active');
+    simulatePlayer();
+  }
+}
+
+// ============ 呼吸引导 ============
+function startBreathing() {
+  const label = document.getElementById('breathLabel');
+  const phases = [
+    { text: '吸 …', ms: 4000 },
+    { text: '屏住 …', ms: 7000 },
+    { text: '呼 …', ms: 8000 }
+  ];
+  let i = 0;
+  function tick() {
+    label.textContent = phases[i].text;
+    const ms = phases[i].ms;
+    i = (i + 1) % phases.length;
+    window._breathTimer = setTimeout(tick, ms);
+  }
+  tick();
+}
+
+// ============ 音频模拟 ============
+function simulatePlayer() {
+  let sec = 0;
+  const total = 90;
+  const fill = document.getElementById('playerFill');
+  const time = document.getElementById('playerTime');
+
+  if (window._playerTimer) clearInterval(window._playerTimer);
+
+  window._playerTimer = setInterval(() => {
+    sec++;
+    fill.style.width = (sec / total * 100) + '%';
+    const rem = total - sec;
+    time.textContent = Math.floor(rem / 60) + ':' + String(rem % 60).padStart(2, '0');
+    if (sec >= total) clearInterval(window._playerTimer);
+  }, 1000);
+}
+
+// ============ 日历 ============
+function renderCalendar() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  const d = now.getDate();
+  const months = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+
+  document.getElementById('calMonth').textContent = months[m];
+
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = '';
+
+  ['一','二','三','四','五','六','日'].forEach(w => {
+    const el = document.createElement('div');
+    el.className = 'cal-weekday';
+    el.textContent = w;
+    grid.appendChild(el);
+  });
+
+  const first = new Date(y, m, 1).getDay();
+  const offset = first === 0 ? 6 : first - 1;
+  const days = new Date(y, m + 1, 0).getDate();
+  const records = getRecords();
+
+  for (let i = 0; i < offset; i++) {
+    const el = document.createElement('div');
+    el.className = 'cal-day';
+    grid.appendChild(el);
+  }
+
+  for (let i = 1; i <= days; i++) {
+    const el = document.createElement('div');
+    el.className = 'cal-day';
+    el.style.animationDelay = `${(i + offset) * 0.02}s`;
+
+    const key = `${y}-${String(m+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+    const rec = records[key];
+
+    if (i > d) {
+      el.textContent = i;
+      el.classList.add('future');
+    } else if (rec && MOOD[rec.mood]) {
+      el.textContent = MOOD[rec.mood].e;
+      el.classList.add('has-data');
+    } else {
+      el.innerHTML = '<span class="dot"></span>';
+    }
+
+    if (i === d) el.classList.add('is-today');
+
+    grid.appendChild(el);
+  }
+
+  // 总结
+  const monthRecs = Object.entries(records).filter(([k]) =>
+    k.startsWith(`${y}-${String(m+1).padStart(2,'0')}`)
+  );
+  const total = monthRecs.length;
+  const good = monthRecs.filter(([,r]) => ['great','good'].includes(r.mood)).length;
+  const bad = monthRecs.filter(([,r]) => ['low','bad'].includes(r.mood)).length;
+
+  let summary = '';
+  if (total === 0) {
+    summary = '还没有记录。没关系，慢慢来。';
+  } else {
+    summary = `这个月你记录了 ${total} 天。\n`;
+    if (good > 0) summary += `有 ${good} 天还不错。`;
+    if (bad > 0) summary += `有 ${bad} 天不太好。`;
+    if (good === 0 && bad === 0) summary += `不好不坏，也是一种日常。`;
+    summary += `\n\n但你每天都来了。这本身就是一种照顾自己。`;
+  }
+
+  document.getElementById('calSummary').textContent = summary;
+}
+
+// ============ AI 状态检查 ============
+async function checkAI() {
+  const dot = document.getElementById('aiDot');
+  const label = document.getElementById('aiLabel');
+  try {
+    const resp = await fetch(API_BASE + '/api/health', { signal: AbortSignal.timeout(3000) });
+    const data = await resp.json();
+    if (data.ai === 'connected') {
+      dot.classList.add('live');
+      label.textContent = 'AI · ' + (data.model || '');
+    } else {
+      label.textContent = '离线模式';
+    }
+  } catch {
+    label.textContent = '离线模式';
+  }
+}
+
+// ============ 初始化 ============
+document.addEventListener('DOMContentLoaded', () => {
+  checkAI();
+  initSeasonBar();
+
+  // 首次使用引导
+  const seen = localStorage.getItem('liubai_onboarded');
+  if (seen) {
+    document.getElementById('onboarding').classList.add('hidden');
+  }
+
+  const rec = getRecords()[today()];
+  if (rec) showPage('calendar');
+});
+
+// ============ 引导关闭 ============
+function closeOnboarding() {
+  document.getElementById('onboarding').classList.add('hidden');
+  localStorage.setItem('liubai_onboarded', '1');
+}
+
+// ============ 节气关怀 ============
+function initSeasonBar() {
+  const bar = document.getElementById('seasonBar');
+  const now = new Date();
+  const m = now.getMonth() + 1;
+  const d = now.getDate();
+  const h = now.getHours();
+
+  // 简易节气映射
+  const seasons = {
+    '1-5': '小寒', '1-20': '大寒', '2-3': '立春', '2-18': '雨水',
+    '3-5': '惊蛰', '3-20': '春分', '4-4': '清明', '4-19': '谷雨',
+    '5-5': '立夏', '5-20': '小满', '6-5': '芒种', '6-21': '夏至',
+    '7-6': '小暑', '7-22': '大暑', '8-7': '立秋', '8-22': '处暑',
+    '9-7': '白露', '9-22': '秋分', '10-8': '寒露', '10-23': '霜降',
+    '11-7': '立冬', '11-22': '小雪', '12-6': '大雪', '12-21': '冬至'
+  };
+
+  const key = m + '-' + d;
+  const season = seasons[key];
+
+  let text = '';
+  if (season) {
+    text = `${season} · 小满就好，不必大满`;
+  } else if (h < 6) {
+    text = '夜深了，早点休息';
+  } else if (h < 9) {
+    text = '新的一天，慢慢来';
+  } else if (h < 12) {
+    text = '上午好，今天也要照顾好自己';
+  } else if (h < 14) {
+    text = '中午了，记得吃点好的';
+  } else if (h < 17) {
+    text = '下午好，站起来伸个懒腰';
+  } else if (h < 20) {
+    text = '傍晚了，今天的辛苦就留在这里';
+  } else {
+    text = '晚上好，给自己一段安静';
+  }
+
+  bar.textContent = text;
+}
+</script>
+
+</body>
+</html>
