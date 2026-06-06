@@ -19,9 +19,9 @@
 
 ## 技术架构
 
-```
+```text
 前端：单页 Web App（HTML + CSS + JS）
-后端：Node.js 轻量服务
+后端：Node.js 轻量服务 / Vercel Serverless Functions
 AI：  LLM API（通义千问 / GPT / DeepSeek）
 存储：LocalStorage（原型阶段）
 ```
@@ -55,9 +55,39 @@ python3 -m http.server 8080
 
 支持任何 OpenAI 兼容 API（通义千问、GPT、DeepSeek、Moonshot 等）。
 
+## Vercel 部署
+
+### 一键部署
+
+```bash
+# 安装 Vercel CLI
+npm i -g vercel
+
+# 登录
+vercel login
+
+# 部署
+vercel
+```
+
+### 配置环境变量
+
+在 Vercel 项目设置中添加环境变量：
+
+| 变量名        | 说明        | 示例                                              |
+| ------------- | ----------- | ------------------------------------------------- |
+| `AI_API_KEY`  | AI API 密钥 | `sk-xxx`                                          |
+| `AI_BASE_URL` | API 地址    | `https://dashscope.aliyuncs.com/compatible-mode/v1` |
+| `AI_MODEL`    | 模型名称    | `qwen-plus`                                       |
+
+### 本地开发 vs Vercel
+
+- **本地开发**：前端自动连接 `localhost:3001`
+- **Vercel 部署**：前端自动使用相对路径 `/api/*`，由 Serverless Functions 处理
+
 ## 项目结构
 
-```
+```text
 liubai/
 ├── src/
 │   ├── index.html          ← Web 原型（4 个页面）

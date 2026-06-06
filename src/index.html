@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>留白 — AI 健康留白系统</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@200;300;400;500&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@200;300;400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@200;300;400;500&display=swap" rel="stylesheet"></noscript>
 <style>
   :root {
     --bg: #f7f5f0;
@@ -280,15 +282,15 @@
 
   .resp-line {
     opacity: 0;
-    animation: slideUp 0.6s var(--transition) forwards;
+    animation: slideUp 0.4s var(--transition) forwards;
     margin-bottom: 4px;
   }
 
-  .resp-line:nth-child(1) { animation-delay: 0.4s; }
-  .resp-line:nth-child(2) { animation-delay: 1.1s; }
-  .resp-line:nth-child(3) { animation-delay: 1.8s; }
-  .resp-line:nth-child(4) { animation-delay: 2.5s; }
-  .resp-line:nth-child(5) { animation-delay: 3.2s; }
+  .resp-line:nth-child(1) { animation-delay: 0.2s; }
+  .resp-line:nth-child(2) { animation-delay: 0.6s; }
+  .resp-line:nth-child(3) { animation-delay: 1.0s; }
+  .resp-line:nth-child(4) { animation-delay: 1.4s; }
+  .resp-line:nth-child(5) { animation-delay: 1.8s; }
 
   /* 加载状态 */
   .loading-dots {
@@ -930,7 +932,10 @@
 
 <script>
 // ============ 配置 ============
-const API_BASE = location.protocol + '//' + location.hostname + ':3001';
+// 自动检测API地址：本地开发用localhost:3001，Vercel部署用相对路径
+const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+  ? location.protocol + '//' + location.hostname + ':3001'
+  : '';
 const STORAGE_KEY = 'liubai_records';
 
 // ============ 数据层 ============
@@ -1018,19 +1023,90 @@ async function showResponse(mood) {
   document.getElementById('respEmoji').textContent = emoji;
   document.getElementById('respText').innerHTML = '';
 
-  // 显示加载
-  const textEl = document.getElementById('respText');
-  textEl.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
-
   document.getElementById('breathGuide').classList.remove('active');
   document.getElementById('playerCard').classList.remove('active');
 
   showPage('response');
 
-  // 请求 AI
+  // 立即显示加载动画
+  const textEl = document.getElementById('respText');
+  textEl.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
+
+  // 并行请求：同时尝试AI和准备离线响应
+  const offlinePromise = new Promise(resolve => {
+    setTimeout(() => resolve(getOfflineData(mood)), 100); // 100ms后准备离线数据
+  });
+
+  const aiPromise = fetchAIResponse(mood);
+
+  // 等待AI响应，但最多等3秒
+  const timeoutPromise = new Promise(resolve => {
+    setTimeout(() => resolve(null), 3000);
+  });
+
+  try {
+    const result = await Promise.race([
+      aiPromise,
+      timeoutPromise
+    ]);
+
+    if (result) {
+      // AI响应成功
+      renderAIResponse(result.text, result.action, emoji);
+    } else {
+      // 超时，使用离线响应
+      const offlineData = await offlinePromise;
+      renderAIResponse(offlineData.text, offlineData.action, emoji);
+    }
+  } catch (e) {
+    // 网络错误，使用离线响应
+    const offlineData = await offlinePromise;
+    renderAIResponse(offlineData.text, offlineData.action, emoji);
+  }
+}
+
+// 获取离线数据（同步）
+function getOfflineData(mood) {
+  const OFFLINE = {
+    great: [
+      { text: '嘿，看起来今天状态不错。\n\n趁着心情好，出门走走吧。不用走远，楼下的风就够。\n\n好天气别浪费。去吧。', action: 'none' },
+      { text: '嗯，今天挺好。\n\n把这个感觉记住。下次不好的时候，想想今天。\n\n好了，去做你的事吧。', action: 'none' }
+    ],
+    good: [
+      { text: '还好就好。\n\n去接杯水吧。站着喝，别坐着。\n\n就这样。下午见。', action: 'none' },
+      { text: '不好不坏，也是一种不错。\n\n站起来伸个懒腰，把肩膀松一松。\n\n够了，去忙吧。', action: 'none' }
+    ],
+    neutral: [
+      { text: '不说话也没关系。\n\n我帮你留了一段安静。90 秒，什么都不用做。\n\n听就行。', action: 'audio:雨声' },
+      { text: '不想说就不说。\n\n深呼吸三次，跟着节奏：吸……屏住……呼。\n\n好了，今天的沉默就留在这里。', action: 'breathe' }
+    ],
+    low: [
+      { text: '嗯，不太好也没关系。\n\n不用解释原因。\n\n我帮你留了一段雨声。90 秒，什么都不用做，听就行。', action: 'audio:雨声' },
+      { text: '今天有点沉吧。\n\n站起来走到窗边，看 30 秒远处。我等你。\n\n回来了？嗯，今天的"不好"就留在这里。明天见。', action: 'none' }
+    ],
+    bad: [
+      { text: '今天挺累的吧。\n\n别撑了。深呼吸三次，跟着这个节奏：吸……屏住……呼。\n\n做完就去休息。明天的事明天再说。晚安。', action: 'breathe' },
+      { text: '嗯，我看到了。\n\n不需要解释，不需要坚强。\n\n听一段海浪声吧。什么都不用想。90 秒就好。', action: 'audio:海浪' }
+    ],
+    skip: [
+      { text: '好的，不说也行。\n\n今天就安静待一会儿。\n\n我在这里，不走。明天见。', action: 'none' },
+      { text: '嗯。\n\n有时候什么都不想说，就是一种回答。\n\n去忙你的吧。', action: 'none' }
+    ]
+  };
+
+  const list = OFFLINE[mood] || OFFLINE.neutral;
+  const pick = list[Math.floor(Math.random() * list.length)];
+  return { text: pick.text, action: pick.action };
+}
+
+// 获取AI响应
+async function fetchAIResponse(mood) {
   try {
     const now = new Date();
     const timeStr = now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0');
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
 
     const resp = await fetch(API_BASE + '/api/respond', {
       method: 'POST',
@@ -1040,14 +1116,14 @@ async function showResponse(mood) {
         time: timeStr,
         weather: '',
         count: todayCount()
-      })
+      }),
+      signal: controller.signal
     });
 
-    const data = await resp.json();
-    renderAIResponse(data.text, data.action, emoji);
+    clearTimeout(timeoutId);
+    return await resp.json();
   } catch (e) {
-    // 离线兜底
-    renderOfflineResponse(mood, emoji);
+    return null;
   }
 }
 
@@ -1055,43 +1131,10 @@ function renderAIResponse(text, action, emoji) {
   const textEl = document.getElementById('respText');
   const lines = text.split('\n').filter(l => l.trim());
   textEl.innerHTML = lines.map((l, i) =>
-    `<div class="resp-line" style="animation-delay:${0.4 + i * 0.7}s">${l}</div>`
+    `<div class="resp-line" style="animation-delay:${0.2 + i * 0.4}s">${l}</div>`
   ).join('');
 
   handleAction(action);
-}
-
-function renderOfflineResponse(mood, emoji) {
-  const OFFLINE = {
-    great: [
-      { t: '嘿，看起来今天状态不错。\n\n趁着心情好，出门走走吧。不用走远，楼下的风就够。\n\n好天气别浪费。去吧。', a: 'none' },
-      { t: '嗯，今天挺好。\n\n把这个感觉记住。下次不好的时候，想想今天。\n\n好了，去做你的事吧。', a: 'none' }
-    ],
-    good: [
-      { t: '还好就好。\n\n去接杯水吧。站着喝，别坐着。\n\n就这样。下午见。', a: 'none' },
-      { t: '不好不坏，也是一种不错。\n\n站起来伸个懒腰，把肩膀松一松。\n\n够了，去忙吧。', a: 'none' }
-    ],
-    neutral: [
-      { t: '不说话也没关系。\n\n我帮你留了一段安静。90 秒，什么都不用做。\n\n听就行。', a: 'audio:雨声' },
-      { t: '不想说就不说。\n\n深呼吸三次，跟着节奏：吸……屏住……呼。\n\n好了，今天的沉默就留在这里。', a: 'breathe' }
-    ],
-    low: [
-      { t: '嗯，不太好也没关系。\n\n不用解释原因。\n\n我帮你留了一段雨声。90 秒，什么都不用做，听就行。', a: 'audio:雨声' },
-      { t: '今天有点沉吧。\n\n站起来走到窗边，看 30 秒远处。我等你。\n\n回来了？嗯，今天的"不好"就留在这里。明天见。', a: 'none' }
-    ],
-    bad: [
-      { t: '今天挺累的吧。\n\n别撑了。深呼吸三次，跟着这个节奏：吸……屏住……呼。\n\n做完就去休息。明天的事明天再说。晚安。', a: 'breathe' },
-      { t: '嗯，我看到了。\n\n不需要解释，不需要坚强。\n\n听一段海浪声吧。什么都不用想。90 秒就好。', a: 'audio:海浪' }
-    ],
-    skip: [
-      { t: '好的，不说也行。\n\n今天就安静待一会儿。\n\n我在这里，不走。明天见。', a: 'none' },
-      { t: '嗯。\n\n有时候什么都不想说，就是一种回答。\n\n去忙你的吧。', a: 'none' }
-    ]
-  };
-
-  const list = OFFLINE[mood] || OFFLINE.neutral;
-  const pick = list[Math.floor(Math.random() * list.length)];
-  renderAIResponse(pick.t, pick.a, emoji);
 }
 
 // ============ 动作处理 ============

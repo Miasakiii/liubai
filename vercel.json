@@ -4,12 +4,25 @@
     {
       "src": "src/index.html",
       "use": "@vercel/static"
+    },
+    {
+      "src": "api/**/*.js",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
     {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
       "src": "/(.*)",
       "dest": "/src/$1"
     }
-  ]
+  ],
+  "env": {
+    "AI_API_KEY": "@ai-api-key",
+    "AI_BASE_URL": "@ai-base-url",
+    "AI_MODEL": "@ai-model"
+  }
 }

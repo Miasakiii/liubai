@@ -123,7 +123,7 @@ function callLLM(systemPrompt, userPrompt) {
     });
 
     req.on('error', () => resolve(getOfflineResponse(userPrompt)));
-    req.setTimeout(10000, () => {
+    req.setTimeout(5000, () => {
       req.destroy();
       resolve(getOfflineResponse(userPrompt));
     });
