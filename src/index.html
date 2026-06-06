@@ -1031,14 +1031,17 @@ function showResponse(mood) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-response').classList.add('active');
 
-  // 立即显示离线响应（最快体验）
+  // 立即显示离线响应（最快体验，不等待任何网络请求）
   const offlineData = getOfflineData(mood);
   renderAIResponse(offlineData.text, offlineData.action, emoji);
 
-  // 如果AI已连接，后台尝试获取AI响应（不阻塞显示）
-  if (window._aiStatus === 'connected') {
-    fetchAIResponse(mood).then(result => {
-      if (result) {
+  // 后台尝试获取AI响应（不阻塞显示，5秒超时）
+  if (window._aiStatus !== 'offline') {
+    const timeoutPromise = new Promise(resolve => setTimeout(() => resolve(null), 5000));
+    const aiPromise = fetchAIResponse(mood);
+
+    Promise.race([aiPromise, timeoutPromise]).then(result => {
+      if (result && result.text) {
         // AI响应成功，替换离线响应
         renderAIResponse(result.text, result.action, emoji);
       }
@@ -1262,7 +1265,7 @@ async function checkAI() {
   window._aiStatus = 'offline';
 
   try {
-    const resp = await fetch(API_BASE + '/api/health', { signal: AbortSignal.timeout(1000) });
+    const resp = await fetch(API_BASE + '/api/health', { signal: AbortSignal.timeout(800) });
     const data = await resp.json();
     if (data.ai === 'connected') {
       dot.classList.add('live');
