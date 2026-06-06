@@ -282,15 +282,15 @@
 
   .resp-line {
     opacity: 0;
-    animation: slideUp 0.3s var(--transition) forwards;
+    animation: slideUp 0.25s var(--transition) forwards;
     margin-bottom: 4px;
   }
 
-  .resp-line:nth-child(1) { animation-delay: 0.1s; }
-  .resp-line:nth-child(2) { animation-delay: 0.4s; }
-  .resp-line:nth-child(3) { animation-delay: 0.7s; }
-  .resp-line:nth-child(4) { animation-delay: 1.0s; }
-  .resp-line:nth-child(5) { animation-delay: 1.3s; }
+  .resp-line:nth-child(1) { animation-delay: 0.05s; }
+  .resp-line:nth-child(2) { animation-delay: 0.2s; }
+  .resp-line:nth-child(3) { animation-delay: 0.35s; }
+  .resp-line:nth-child(4) { animation-delay: 0.5s; }
+  .resp-line:nth-child(5) { animation-delay: 0.65s; }
 
   /* 加载状态 */
   .loading-dots {
@@ -1018,7 +1018,7 @@ function selectMood(mood, btn) {
 }
 
 // ============ AI 回应 ============
-async function showResponse(mood) {
+function showResponse(mood) {
   const emoji = MOOD[mood]?.e || '🌙';
   document.getElementById('respEmoji').textContent = emoji;
   document.getElementById('respText').innerHTML = '';
@@ -1028,26 +1028,21 @@ async function showResponse(mood) {
 
   showPage('response');
 
-  // 检查API是否可用（使用缓存的状态）
-  if (window._aiStatus === 'connected') {
-    // AI已连接，显示加载动画并请求AI
-    const textEl = document.getElementById('respText');
-    textEl.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
-
-    try {
-      const result = await fetchAIResponse(mood);
-      if (result) {
-        renderAIResponse(result.text, result.action, emoji);
-        return;
-      }
-    } catch (e) {
-      // AI请求失败，使用离线响应
-    }
-  }
-
-  // 离线模式或AI请求失败，立即显示离线响应（无加载动画）
+  // 立即显示离线响应（最快体验）
   const offlineData = getOfflineData(mood);
   renderAIResponse(offlineData.text, offlineData.action, emoji);
+
+  // 如果AI已连接，后台尝试获取AI响应（不阻塞显示）
+  if (window._aiStatus === 'connected') {
+    fetchAIResponse(mood).then(result => {
+      if (result) {
+        // AI响应成功，替换离线响应
+        renderAIResponse(result.text, result.action, emoji);
+      }
+    }).catch(() => {
+      // 保持离线响应
+    });
+  }
 }
 
 // 获取离线数据（同步）
@@ -1258,20 +1253,21 @@ function renderCalendar() {
 async function checkAI() {
   const dot = document.getElementById('aiDot');
   const label = document.getElementById('aiLabel');
+
+  // 默认离线状态（立即生效）
+  label.textContent = '离线模式';
+  window._aiStatus = 'offline';
+
   try {
-    const resp = await fetch(API_BASE + '/api/health', { signal: AbortSignal.timeout(3000) });
+    const resp = await fetch(API_BASE + '/api/health', { signal: AbortSignal.timeout(1000) });
     const data = await resp.json();
     if (data.ai === 'connected') {
       dot.classList.add('live');
       label.textContent = 'AI · ' + (data.model || '');
-      window._aiStatus = 'connected'; // 缓存状态
-    } else {
-      label.textContent = '离线模式';
-      window._aiStatus = 'offline';
+      window._aiStatus = 'connected';
     }
   } catch {
-    label.textContent = '离线模式';
-    window._aiStatus = 'offline';
+    // 保持离线状态
   }
 }
 
