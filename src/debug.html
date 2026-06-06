@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Vercel 部署调试</title>
+  <style>
+    body { font-family: monospace; padding: 20px; max-width: 800px; margin: 0 auto; }
+    .ok { color: green; }
+    .error { color: red; }
+    .warn { color: orange; }
+    pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+    h1 { border-bottom: 2px solid #333; padding-bottom: 10px; }
+    h2 { color: #666; }
+    .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+  </style>
+</head>
+<body>
+  <h1>🔍 Vercel 部署调试</h1>
+
+  <div class="section">
+    <h2>1. 当前环境信息</h2>
+    <div id="env-info"></div>
+  </div>
+
+  <div class="section">
+    <h2>2. API 连接测试</h2>
+    <div id="api-test"></div>
+  </div>
+
+  <div class="section">
+    <h2>3. 问题诊断</h2>
+    <div id="diagnosis"></div>
+  </div>
+
+  <script>
+    const envInfo = document.getElementById('env-info');
+    const apiTest = document.getElementById('api-test');
+    const diagnosis = document.getElementById('diagnosis');
+
+    function log(container, msg, type = 'info') {
+      const div = document.createElement('div');
+      div.className = type === 'error' ? 'error' : type === 'warn' ? 'warn' : 'ok';
+      div.textContent = msg;
+      container.appendChild(div);
+    }
+
+    async function runDiagnostics() {
+      // 1. 环境信息
+      log(envInfo, `当前域名: ${location.hostname}`);
+      log(envInfo, `当前协议: ${location.protocol}`);
+      log(envInfo, `完整 URL: ${location.href}`);
+
+      const isVercel = location.hostname.includes('vercel.app') || location.hostname.includes('.vercel.app');
+      log(envInfo, `是否 Vercel 部署: ${isVercel ? '✅ 是' : '❌ 否'}`);
+
+      // 2. API 测试
+      const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+        ? location.protocol + '//' + location.hostname + ':3001'
+        : '';
+
+      log(apiTest, `API_BASE: "${API_BASE}"`);
+
+      // 测试健康检查
+      try {
+        log(apiTest, '\n测试 /api/health...');
+        const resp = await fetch(API_BASE + '/api/health', {
+          signal: AbortSignal.timeout(5000)
+        });
+        const data = await resp.json();
+        log(apiTest, `✅ 健康检查成功: ${JSON.stringify(data)}`);
+
+        if (data.ai === 'connected') {
+          log(apiTest, '✅ AI 已连接');
+        } else {
+          log(apiTest, '⚠️ AI 未连接 (离线模式)', 'warn');
+        }
+      } catch (e) {
+        log(apiTest, `❌ 健康检查失败: ${e.message}`, 'error');
+
+        // 诊断问题
+        if (e.message.includes('Failed to fetch')) {
+          log(diagnosis, '❌ API 路由无法访问', 'error');
+          log(diagnosis, '可能原因:', 'warn');
+          log(diagnosis, '  1. Vercel Serverless Functions 未正确部署', 'warn');
+          log(diagnosis, '  2. api/respond.js 文件不存在或有语法错误', 'warn');
+          log(diagnosis, '  3. vercel.json 配置不正确', 'warn');
+        } else if (e.message.includes('timeout')) {
+          log(diagnosis, '⚠️ API 请求超时', 'warn');
+          log(diagnosis, '可能原因:', 'warn');
+          log(diagnosis, '  1. Vercel 函数执行超时', 'warn');
+          log(diagnosis, '  2. AI API 响应慢', 'warn');
+        }
+      }
+
+      // 测试情绪回应
+      try {
+        log(apiTest, '\n测试 /api/respond...');
+        const resp = await fetch(API_BASE + '/api/respond', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mood: 'good', time: '14:30', weather: '', count: 1 }),
+          signal: AbortSignal.timeout(10000)
+        });
+        const data = await resp.json();
+        log(apiTest, `✅ 情绪回应成功: ${JSON.stringify(data)}`);
+      } catch (e) {
+        log(apiTest, `❌ 情绪回应失败: ${e.message}`, 'error');
+      }
+
+      // 3. 问题诊断
+      log(diagnosis, '\n📋 检查清单:');
+
+      if (!isVercel) {
+        log(diagnosis, '⚠️ 当前不是 Vercel 部署', 'warn');
+        log(diagnosis, '   请访问你的 Vercel 网址进行测试', 'warn');
+      }
+
+      log(diagnosis, '\n🔧 解决方案:');
+      log(diagnosis, '1. 确保在 Vercel 控制台添加了环境变量:');
+      log(diagnosis, '   - AI_API_KEY');
+      log(diagnosis, '   - AI_BASE_URL');
+      log(diagnosis, '   - AI_MODEL');
+      log(diagnosis, '\n2. 添加环境变量后必须重新部署:');
+      log(diagnosis, '   - Deployments → ⋯ → Redeploy');
+      log(diagnosis, '\n3. 检查 Vercel 部署日志:');
+      log(diagnosis, '   - Deployments → 点击最新部署 → Functions');
+      log(diagnosis, '   - 查看是否有错误信息');
+    }
+
+    runDiagnostics();
+  </script>
+</body>
+</html>

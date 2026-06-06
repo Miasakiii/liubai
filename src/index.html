@@ -282,15 +282,15 @@
 
   .resp-line {
     opacity: 0;
-    animation: slideUp 0.4s var(--transition) forwards;
+    animation: slideUp 0.3s var(--transition) forwards;
     margin-bottom: 4px;
   }
 
-  .resp-line:nth-child(1) { animation-delay: 0.2s; }
-  .resp-line:nth-child(2) { animation-delay: 0.6s; }
-  .resp-line:nth-child(3) { animation-delay: 1.0s; }
-  .resp-line:nth-child(4) { animation-delay: 1.4s; }
-  .resp-line:nth-child(5) { animation-delay: 1.8s; }
+  .resp-line:nth-child(1) { animation-delay: 0.1s; }
+  .resp-line:nth-child(2) { animation-delay: 0.4s; }
+  .resp-line:nth-child(3) { animation-delay: 0.7s; }
+  .resp-line:nth-child(4) { animation-delay: 1.0s; }
+  .resp-line:nth-child(5) { animation-delay: 1.3s; }
 
   /* 加载状态 */
   .loading-dots {
@@ -1028,41 +1028,26 @@ async function showResponse(mood) {
 
   showPage('response');
 
-  // 立即显示加载动画
-  const textEl = document.getElementById('respText');
-  textEl.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
+  // 检查API是否可用（使用缓存的状态）
+  if (window._aiStatus === 'connected') {
+    // AI已连接，显示加载动画并请求AI
+    const textEl = document.getElementById('respText');
+    textEl.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
 
-  // 并行请求：同时尝试AI和准备离线响应
-  const offlinePromise = new Promise(resolve => {
-    setTimeout(() => resolve(getOfflineData(mood)), 100); // 100ms后准备离线数据
-  });
-
-  const aiPromise = fetchAIResponse(mood);
-
-  // 等待AI响应，但最多等3秒
-  const timeoutPromise = new Promise(resolve => {
-    setTimeout(() => resolve(null), 3000);
-  });
-
-  try {
-    const result = await Promise.race([
-      aiPromise,
-      timeoutPromise
-    ]);
-
-    if (result) {
-      // AI响应成功
-      renderAIResponse(result.text, result.action, emoji);
-    } else {
-      // 超时，使用离线响应
-      const offlineData = await offlinePromise;
-      renderAIResponse(offlineData.text, offlineData.action, emoji);
+    try {
+      const result = await fetchAIResponse(mood);
+      if (result) {
+        renderAIResponse(result.text, result.action, emoji);
+        return;
+      }
+    } catch (e) {
+      // AI请求失败，使用离线响应
     }
-  } catch (e) {
-    // 网络错误，使用离线响应
-    const offlineData = await offlinePromise;
-    renderAIResponse(offlineData.text, offlineData.action, emoji);
   }
+
+  // 离线模式或AI请求失败，立即显示离线响应（无加载动画）
+  const offlineData = getOfflineData(mood);
+  renderAIResponse(offlineData.text, offlineData.action, emoji);
 }
 
 // 获取离线数据（同步）
@@ -1131,7 +1116,7 @@ function renderAIResponse(text, action, emoji) {
   const textEl = document.getElementById('respText');
   const lines = text.split('\n').filter(l => l.trim());
   textEl.innerHTML = lines.map((l, i) =>
-    `<div class="resp-line" style="animation-delay:${0.2 + i * 0.4}s">${l}</div>`
+    `<div class="resp-line" style="animation-delay:${0.1 + i * 0.3}s">${l}</div>`
   ).join('');
 
   handleAction(action);
@@ -1279,11 +1264,14 @@ async function checkAI() {
     if (data.ai === 'connected') {
       dot.classList.add('live');
       label.textContent = 'AI · ' + (data.model || '');
+      window._aiStatus = 'connected'; // 缓存状态
     } else {
       label.textContent = '离线模式';
+      window._aiStatus = 'offline';
     }
   } catch {
     label.textContent = '离线模式';
+    window._aiStatus = 'offline';
   }
 }
 
