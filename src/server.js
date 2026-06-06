@@ -1,5 +1,25 @@
 const http = require('http');
 const https = require('https');
+const path = require('path');
+const fs = require('fs');
+
+// 加载 .env 配置
+function loadEnv() {
+  const envPath = path.join(__dirname, '..', '.env');
+  if (fs.existsSync(envPath)) {
+    const content = fs.readFileSync(envPath, 'utf8');
+    content.split('\n').forEach(line => {
+      const [key, ...valueParts] = line.split('=');
+      if (key && !key.startsWith('#')) {
+        const value = valueParts.join('=').trim();
+        if (value && !process.env[key.trim()]) {
+          process.env[key.trim()] = value;
+        }
+      }
+    });
+  }
+}
+loadEnv();
 
 const PORT = 3001;
 
