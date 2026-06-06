@@ -282,15 +282,15 @@
 
   .resp-line {
     opacity: 0;
-    animation: slideUp 0.25s var(--transition) forwards;
+    animation: slideUp 0.2s var(--transition) forwards;
     margin-bottom: 4px;
   }
 
-  .resp-line:nth-child(1) { animation-delay: 0.05s; }
-  .resp-line:nth-child(2) { animation-delay: 0.2s; }
-  .resp-line:nth-child(3) { animation-delay: 0.35s; }
-  .resp-line:nth-child(4) { animation-delay: 0.5s; }
-  .resp-line:nth-child(5) { animation-delay: 0.65s; }
+  .resp-line:nth-child(1) { animation-delay: 0s; }
+  .resp-line:nth-child(2) { animation-delay: 0.1s; }
+  .resp-line:nth-child(3) { animation-delay: 0.2s; }
+  .resp-line:nth-child(4) { animation-delay: 0.3s; }
+  .resp-line:nth-child(5) { animation-delay: 0.4s; }
 
   /* 加载状态 */
   .loading-dots {
@@ -1014,7 +1014,8 @@ function selectMood(mood, btn) {
     setTimeout(() => rip.remove(), 500);
   }
   saveRecord(today(), mood);
-  setTimeout(() => showResponse(mood), 350);
+  // 立即显示响应（无延迟）
+  showResponse(mood);
 }
 
 // ============ AI 回应 ============
@@ -1026,7 +1027,9 @@ function showResponse(mood) {
   document.getElementById('breathGuide').classList.remove('active');
   document.getElementById('playerCard').classList.remove('active');
 
-  showPage('response');
+  // 立即显示响应页面（无延迟）
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-response').classList.add('active');
 
   // 立即显示离线响应（最快体验）
   const offlineData = getOfflineData(mood);
