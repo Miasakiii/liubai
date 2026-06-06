@@ -6,6 +6,10 @@ docs/
 *.docx
 *.xlsx
 
+# 忽略商业计划和路线图（内部文档）
+BUSINESS_PLAN.md
+ROADMAP.md
+
 # 常用忽略项
 node_modules/
 .DS_Store
