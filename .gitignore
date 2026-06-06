@@ -10,6 +10,13 @@ docs/
 BUSINESS_PLAN.md
 ROADMAP.md
 
+# 忽略本地开发/演示文件
+qrcode.html
+start.bat
+打开留白.html
+留白 - 体验二维码.png
+留白海报.png
+
 # 常用忽略项
 node_modules/
 .DS_Store
