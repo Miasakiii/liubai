@@ -2143,14 +2143,32 @@ function startBreathingWithType(type) {
 
 // ============ 音频播放 ============
 // 使用免费在线音频源
+const AUDIO_URLS = {
+  '雨声': 'https://assets.mixkit.co/active_storage/sfx/1248/1248-preview.mp3',
+  '海浪': 'https://assets.mixkit.co/active_storage/sfx/1196/1196-preview.mp3',
+  '壁炉': 'https://assets.mixkit.co/active_storage/sfx/1329/1329-preview.mp3',
+  '风铃': 'https://assets.mixkit.co/active_storage/sfx/1157/1157-preview.mp3',
+  '深夜书店': 'https://assets.mixkit.co/active_storage/sfx/1258/1258-preview.mp3',
+};
+
 let currentAudio = null;
 let audioTimer = null;
 let currentAudioCtx = null;
 
 function startAudio(name) {
   stopAudio();
-  // 全部使用 Web Audio API 本地生成，无外部依赖
-  startLocalAudio(name);
+
+  const url = AUDIO_URLS[name] || AUDIO_URLS['雨声'];
+  const audio = new Audio(url);
+  audio.loop = true;
+  audio.volume = 0.4;
+
+  audio.play().catch(() => {
+    // 在线音频失败时降级为本地生成
+    startLocalAudio(name);
+  });
+
+  currentAudio = { stop: () => { try { audio.pause(); audio.currentTime = 0; } catch(e) {} } };
 
   // 进度条
   let sec = 0;
