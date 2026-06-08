@@ -2143,31 +2143,14 @@ function startBreathingWithType(type) {
 
 // ============ 音频播放 ============
 // 使用免费在线音频源
-const AUDIO_URLS = {
-  '雨声': 'https://cdn.pixabay.com/audio/2022/05/27/audio_1808fbf07a.mp3',
-  '海浪': 'https://cdn.pixabay.com/audio/2022/10/30/audio_710a1ee5a8.mp3',
-  '壁炉': 'https://cdn.pixabay.com/audio/2022/11/22/audio_317438581c.mp3',
-  '风铃': 'https://cdn.pixabay.com/audio/2024/11/29/audio_2b0f0b0b0b.mp3',
-  '深夜书店': 'https://cdn.pixabay.com/audio/2024/02/14/audio_5f0e0b0b0b.mp3'
-};
-
 let currentAudio = null;
 let audioTimer = null;
+let currentAudioCtx = null;
 
 function startAudio(name) {
   stopAudio();
-
-  const url = AUDIO_URLS[name] || AUDIO_URLS['雨声'];
-  const audio = new Audio(url);
-  audio.loop = true;
-  audio.volume = 0.4;
-
-  audio.play().catch(() => {
-    // 如果在线音频失败，使用本地生成
-    startLocalAudio(name);
-  });
-
-  currentAudio = audio;
+  // 全部使用 Web Audio API 本地生成，无外部依赖
+  startLocalAudio(name);
 
   // 进度条
   let sec = 0;
@@ -2189,18 +2172,59 @@ function startAudio(name) {
   }, 1000);
 }
 
-// 本地生成备用方案
+// 本地音频生成（Web Audio API）
 function startLocalAudio(name) {
   const AudioCtx = window.AudioContext || window.webkitAudioContext;
   const ctx = new AudioCtx();
-  const bufferSize = ctx.sampleRate * 2;
-  const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-  const data = buffer.getChannelData(0);
+  currentAudioCtx = ctx;
+  const sr = ctx.sampleRate;
+  const len = sr * 4; // 4 秒循环
+  const buffer = ctx.createBuffer(1, len, sr);
+  const d = buffer.getChannelData(0);
 
-  // 生成粉红噪音作为基础
-  for (let i = 0; i < bufferSize; i++) {
-    const white = Math.random() * 2 - 1;
-    data[i] = (data[i-1] || 0) * 0.97 + white * 0.03;
+  if (name === '雨声') {
+    // 雨声：低频过滤白噪音 + 轻微调制
+    for (let i = 0; i < len; i++) {
+      const w = Math.random() * 2 - 1;
+      const pink = (d[i-1] || 0) * 0.96 + w * 0.04;
+      const mod = 0.85 + 0.15 * Math.sin(i / sr * 0.3);
+      d[i] = pink * mod;
+    }
+  } else if (name === '海浪') {
+    // 海浪：缓慢振幅调制的噪声
+    for (let i = 0; i < len; i++) {
+      const w = Math.random() * 2 - 1;
+      const pink = (d[i-1] || 0) * 0.95 + w * 0.05;
+      const wave = 0.5 + 0.5 * Math.sin(i / sr * 0.15 * Math.PI * 2);
+      d[i] = pink * (0.3 + 0.7 * wave);
+    }
+  } else if (name === '壁炉') {
+    // 壁炉：温暖的噪声 + 随机噼啪声
+    for (let i = 0; i < len; i++) {
+      const w = Math.random() * 2 - 1;
+      const warm = (d[i-1] || 0) * 0.93 + w * 0.07;
+      const crackle = Math.random() < 0.002 ? (Math.random() * 0.6 + 0.2) : 0;
+      d[i] = warm * 0.6 + crackle;
+    }
+  } else if (name === '风铃') {
+    // 风铃：柔和的正弦泛音 + 轻风
+    for (let i = 0; i < len; i++) {
+      const t = i / sr;
+      const chime = 0.15 * Math.sin(t * 523 * Math.PI * 2) * Math.exp(-((t % 1.3) * 3))
+                  + 0.1  * Math.sin(t * 659 * Math.PI * 2) * Math.exp(-((t % 1.7) * 4))
+                  + 0.08 * Math.sin(t * 784 * Math.PI * 2) * Math.exp(-((t % 2.1) * 5));
+      const wind = (Math.random() * 2 - 1) * 0.02;
+      d[i] = chime + wind;
+    }
+  } else {
+    // 深夜书店：极轻的环境嗡鸣 + 翻书声
+    for (let i = 0; i < len; i++) {
+      const t = i / sr;
+      const hum = 0.08 * Math.sin(t * 100 * Math.PI * 2);
+      const noise = (Math.random() * 2 - 1) * 0.015;
+      const page = Math.random() < 0.0008 ? (Math.random() * 0.15 - 0.075) : 0;
+      d[i] = hum + noise + page;
+    }
   }
 
   const source = ctx.createBufferSource();
@@ -2209,26 +2233,27 @@ function startLocalAudio(name) {
 
   const filter = ctx.createBiquadFilter();
   filter.type = 'lowpass';
-  filter.frequency.value = 800;
+  filter.frequency.value = name === '风铃' ? 3000 : name === '壁炉' ? 1200 : 900;
 
   const gain = ctx.createGain();
-  gain.gain.value = 0.3;
+  gain.gain.value = name === '深夜书店' ? 0.5 : 0.35;
 
   source.connect(filter);
   filter.connect(gain);
   gain.connect(ctx.destination);
   source.start();
 
-  currentAudio = { stop: () => { try { source.stop(); } catch(e) {} } };
+  currentAudio = { stop: () => { try { source.stop(); ctx.close(); } catch(e) {} } };
 }
 
 function stopAudio() {
   if (currentAudio) {
-    try {
-      currentAudio.pause();
-      currentAudio.currentTime = 0;
-    } catch(e) {}
+    try { currentAudio.stop(); } catch(e) {}
     currentAudio = null;
+  }
+  if (currentAudioCtx) {
+    try { currentAudioCtx.close(); } catch(e) {}
+    currentAudioCtx = null;
   }
   if (audioTimer) {
     clearInterval(audioTimer);
