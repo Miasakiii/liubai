@@ -219,6 +219,19 @@
   .daily-quote .fav-btn:hover { color: var(--accent); }
   .daily-quote .fav-btn.active { color: #e8868a; }
 
+  /* 情绪温度计 */
+  .mood-thermo {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+    margin-bottom: 12px;
+    letter-spacing: 1px;
+    opacity: 0;
+    animation: fadeIn 0.8s ease 0.3s forwards;
+  }
+
+  .mood-thermo.hidden { display: none; }
+
   .home-question {
     font-size: 28px;
     font-weight: 200;
@@ -733,6 +746,102 @@
   }
 
   .tree-overlay-close:hover {
+    background: var(--accent-soft);
+  }
+
+  /* 月度回顾 */
+  .monthly-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 250;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .monthly-overlay.active { display: flex; }
+
+  .monthly-box {
+    background: var(--white);
+    border-radius: 20px;
+    padding: 32px 24px 24px;
+    max-width: 320px;
+    width: 88%;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.15);
+    animation: scaleIn 0.3s var(--transition);
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+
+  .monthly-title {
+    font-size: 16px;
+    color: var(--text);
+    text-align: center;
+    margin-bottom: 4px;
+    letter-spacing: 2px;
+    font-weight: 300;
+  }
+
+  .monthly-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+    margin-bottom: 20px;
+    letter-spacing: 1px;
+  }
+
+  .monthly-content {
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.9;
+    white-space: pre-wrap;
+    margin-bottom: 20px;
+  }
+
+  .monthly-loading {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13px;
+    padding: 40px 0;
+    letter-spacing: 1px;
+  }
+
+  .monthly-close {
+    display: block;
+    margin: 0 auto;
+    font-size: 13px;
+    color: var(--text-muted);
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-family: inherit;
+    padding: 6px 20px;
+    border-radius: 10px;
+    transition: all 0.3s;
+    letter-spacing: 1px;
+  }
+
+  .monthly-close:hover {
+    background: var(--accent-soft);
+  }
+
+  .cal-monthly-btn {
+    display: block;
+    margin: 12px auto 0;
+    font-size: 13px;
+    color: var(--accent);
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-family: inherit;
+    padding: 6px 16px;
+    border-radius: 10px;
+    transition: all 0.3s;
+    letter-spacing: 1px;
+  }
+
+  .cal-monthly-btn:hover {
     background: var(--accent-soft);
   }
 
@@ -1302,6 +1411,7 @@
 <div id="page-home" class="page active">
   <div class="home-content">
     <div class="daily-quote" id="dailyQuote"></div>
+    <div class="mood-thermo" id="moodThermo"></div>
     <div class="brand">留 白</div>
     <h1 class="home-question">今天，还好吗？</h1>
     <div class="mood-row">
@@ -1396,6 +1506,7 @@
   <div class="cal-summary">
     <p class="cal-summary-text" id="calSummary"></p>
   </div>
+  <button class="cal-monthly-btn" onclick="openMonthlyReview()">📖 本月回顾</button>
   <button class="cal-back" onclick="goHome()">← 回到今天</button>
 </div>
 
@@ -1479,6 +1590,18 @@
     <div class="tree-overlay-title" id="driftTitle">🌊 漂流瓶</div>
     <div id="driftContent"></div>
     <button class="tree-overlay-close" onclick="closeDriftOverlay()">关 闭</button>
+  </div>
+</div>
+
+<!-- 月度回顾浮层 -->
+<div class="monthly-overlay" id="monthlyOverlay" onclick="closeMonthlyOverlay(event)">
+  <div class="monthly-box" onclick="event.stopPropagation()">
+    <div class="monthly-title" id="monthlyTitle">本月回顾</div>
+    <div class="monthly-sub" id="monthlySub">你的留白小记</div>
+    <div class="monthly-content" id="monthlyContent">
+      <div class="monthly-loading">正在生成…</div>
+    </div>
+    <button class="monthly-close" onclick="closeMonthlyOverlay()">关 闭</button>
   </div>
 </div>
 
@@ -2209,6 +2332,103 @@ function closeTreeOverlay(e) {
   document.getElementById('treeOverlay').classList.remove('active');
 }
 
+// ============ 月度回顾 ============
+const MONTHLY_REVIEW_KEY = 'liubai_monthly_review';
+
+function getMonthlyReviewData() {
+  try { return JSON.parse(localStorage.getItem(MONTHLY_REVIEW_KEY) || '{}'); }
+  catch { return {}; }
+}
+
+function openMonthlyReview() {
+  const overlay = document.getElementById('monthlyOverlay');
+  const contentEl = document.getElementById('monthlyContent');
+  const titleEl = document.getElementById('monthlyTitle');
+  const subEl = document.getElementById('monthlySub');
+
+  const now = new Date();
+  const months = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+  const monthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
+  titleEl.textContent = months[now.getMonth()];
+  subEl.textContent = '你的留白小记';
+
+  // 检查缓存
+  const cache = getMonthlyReviewData();
+  if (cache[monthKey]) {
+    contentEl.textContent = cache[monthKey];
+    overlay.classList.add('active');
+    return;
+  }
+
+  contentEl.innerHTML = '<div class="monthly-loading">正在生成…</div>';
+  overlay.classList.add('active');
+
+  // 收集本月数据
+  const records = getRecords();
+  const monthRecs = Object.entries(records)
+    .filter(([k]) => k.startsWith(monthKey))
+    .sort(([a], [b]) => a.localeCompare(b));
+
+  const total = monthRecs.length;
+  const good = monthRecs.filter(([,r]) => ['great','good'].includes(r.mood)).length;
+  const bad = monthRecs.filter(([,r]) => ['low','bad'].includes(r.mood)).length;
+  const neutral = monthRecs.filter(([,r]) => ['neutral','skip'].includes(r.mood)).length;
+
+  const moodMap = { great: '😊', good: '🙂', neutral: '😐', low: '😔', bad: '😫', skip: '😶' };
+  const moodStr = monthRecs.map(([,r]) => moodMap[r.mood] || '·').join('');
+
+  // 离线回顾模板
+  let offlineText = '';
+  if (total === 0) {
+    offlineText = '这个月还没有记录。\n\n没关系，慢慢来。\n\n下个月见。';
+  } else if (good > total * 0.6) {
+    offlineText = `这个月你来了 ${total} 天。\n\n有 ${good} 天还不错，看得出来心情挺好的。\n\n继续保持。\n\n下个月见。`;
+  } else if (bad > total * 0.4) {
+    offlineText = `这个月你来了 ${total} 天。\n\n有 ${bad} 天不太好，但你还是来了。\n\n这本身就是一种勇气。\n\n下个月见。`;
+  } else {
+    offlineText = `这个月你来了 ${total} 天。\n\n有 ${good} 天还不错，有 ${bad} 天不太好，有 ${neutral} 天只是来坐坐。\n\n不管怎样，你来了。\n\n下个月见。`;
+  }
+
+  // 尝试 AI 生成
+  fetch(API_BASE + '/api/calendar', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      month: now.getMonth() + 1,
+      records: moodStr,
+      totalDays: total,
+    }),
+  })
+    .then(r => r.json())
+    .then(data => {
+      const text = data.text || offlineText;
+      contentEl.textContent = text;
+      const c = getMonthlyReviewData();
+      c[monthKey] = text;
+      localStorage.setItem(MONTHLY_REVIEW_KEY, JSON.stringify(c));
+    })
+    .catch(() => {
+      contentEl.textContent = offlineText;
+    });
+}
+
+function closeMonthlyOverlay(e) {
+  if (e && e.target !== document.getElementById('monthlyOverlay')) return;
+  document.getElementById('monthlyOverlay').classList.remove('active');
+}
+
+// 自动触发：每月 1 日首次打开
+function checkMonthlyReview() {
+  const now = new Date();
+  if (now.getDate() !== 1) return;
+  const monthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const shownKey = 'liubai_monthly_shown';
+  if (localStorage.getItem(shownKey) === monthKey) return;
+  localStorage.setItem(shownKey, monthKey);
+  setTimeout(() => openMonthlyReview(), 1500);
+}
+
 // ============ 漂流瓶 ============
 const DRIFT_KEY = 'liubai_drift_bottles';
 const DRIFT_ANON_TAGS = [
@@ -2552,6 +2772,8 @@ document.addEventListener('DOMContentLoaded', () => {
   checkAI();
   initSeasonBar();
   initDailyQuote();
+  initMoodThermo();
+  checkMonthlyReview();
 
   // 首次使用引导
   const seen = localStorage.getItem('liubai_onboarded');
@@ -2567,6 +2789,36 @@ document.addEventListener('DOMContentLoaded', () => {
 function closeOnboarding() {
   document.getElementById('onboarding').classList.add('hidden');
   localStorage.setItem('liubai_onboarded', '1');
+}
+
+// ============ 情绪温度计 ============
+function initMoodThermo() {
+  const el = document.getElementById('moodThermo');
+  if (!el) return;
+  const records = getRecords();
+  const now = new Date();
+  const MOOD_VAL = { great: 100, good: 75, neutral: 50, low: 25, bad: 0, skip: 50 };
+  let sum = 0, count = 0;
+
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    const rec = records[key];
+    if (rec && MOOD_VAL[rec.mood] !== undefined) {
+      sum += MOOD_VAL[rec.mood];
+      count++;
+    }
+  }
+
+  if (count === 0) {
+    el.classList.add('hidden');
+    return;
+  }
+
+  const temp = Math.round(sum / count);
+  const display = `本周情绪温度 ${temp}°`;
+  el.textContent = display;
 }
 
 // ============ 今日一句初始化 ============
