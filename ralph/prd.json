@@ -1,0 +1,111 @@
+{
+  "project": "留白 V1.5",
+  "branchName": "ralph/v1.5-content-healing",
+  "description": "V1.5 内容治愈 — 丰富回应形式，提升用户粘性。新增今日一句、情绪歌单、天气感知、内容收藏、节气关怀、晚安模式。",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "接入天气 API 后端代理",
+      "description": "作为开发者，我需要在后端新增天气 API 代理端点，为前端提供天气数据。",
+      "acceptanceCriteria": [
+        "server.js 新增 /api/weather 端点",
+        "调用和风天气 API 获取当前天气（天气状况 + 温度）",
+        "支持 IP 定位（不强制用户授权定位）",
+        "天气数据缓存 30 分钟（内存或 Redis）",
+        "无 API Key 时返回降级数据（空天气，不报错）",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "首页展示今日一句",
+      "description": "作为用户，我每次打开 App 时能看到一句温暖的话，不需要任何操作。",
+      "acceptanceCriteria": [
+        "首页情绪输入上方展示一句随机文案",
+        "文案来自 content/EMOTION_LIBRARY.md 中的内容",
+        "同一天内刷新页面不重复（基于日期种子或已展示记录）",
+        "文案有淡入动画（与页面呼吸节奏一致）",
+        "点击情绪后文案消失，进入回应流程",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "AI 回应页添加情绪歌单推荐",
+      "description": "作为用户，当我情绪低落时，AI 能推荐一首适合的歌，点击后跳转到外部音乐播放器。",
+      "acceptanceCriteria": [
+        "AI 回应页底部显示歌曲推荐卡片",
+        "内置歌曲映射表（每种情绪 2-3 首歌）",
+        "点击歌曲跳转到网易云音乐搜索页（外部链接）",
+        "歌曲与情绪匹配（低落时不推荐悲伤歌曲）",
+        "卡片样式：暖棕色背景、圆角、🎵 图标 + 歌名 + 歌手",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "内容收藏功能",
+      "description": "作为用户，我看到喜欢的句子时可以收藏，以后回顾。",
+      "acceptanceCriteria": [
+        "今日一句和 AI 回应中有 ♡ 喜欢按钮",
+        "点击后文案保存到 LocalStorage（含文案内容 + 收藏日期）",
+        "按钮变为 ❤️ 已收藏状态",
+        "再次点击可取消收藏",
+        "情绪日历页右上角有心形图标入口",
+        "收藏列表页展示文案 + 日期",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "节气关怀条",
+      "description": "作为用户，在节气当天能看到一句应景的关怀文案。",
+      "acceptanceCriteria": [
+        "首页顶部显示节气关怀横幅（仅节气当天）",
+        "24 节气日期表内置前端",
+        "文案来自 EMOTION_LIBRARY.md 中的节气文案",
+        "横幅样式：半透明暖色背景、小字、🌱 图标",
+        "3 秒后自动收起（或点击关闭）",
+        "非节气天气不显示任何内容",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "晚安模式",
+      "description": "作为用户，深夜打开 App 时界面自动变安静，推荐助眠内容。",
+      "acceptanceCriteria": [
+        "22:00-06:00 自动进入晚安模式",
+        "背景切换为深色渐变（深蓝/深灰）",
+        "字体字重降低（变轻）",
+        "今日一句替换为晚安专属文案",
+        "AI 回应优先推荐白噪音/呼吸引导",
+        "设置页新增晚安模式开关（默认开启）",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": ""
+    }
+  ]
+}

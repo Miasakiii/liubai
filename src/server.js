@@ -32,6 +32,76 @@ const AI_CONFIG = {
   model: process.env.AI_MODEL || 'qwen-plus',
 };
 
+// ============ 天气 API 配置 ============
+const WEATHER_CONFIG = {
+  // 和风天气 API
+  apiKey: process.env.WEATHER_API_KEY || '',
+  baseUrl: 'https://devapi.qweather.com/v7',
+  geoUrl: 'https://geoapi.qweather.com/v2',
+};
+
+// 天气缓存（内存，30 分钟 TTL）
+const weatherCache = { data: null, ts: 0 };
+const WEATHER_CACHE_TTL = 30 * 60 * 1000;
+
+function getWeatherFromAPI() {
+  return new Promise((resolve) => {
+    // 检查缓存
+    if (weatherCache.data && (Date.now() - weatherCache.ts) < WEATHER_CACHE_TTL) {
+      resolve(weatherCache.data);
+      return;
+    }
+
+    if (!WEATHER_CONFIG.apiKey) {
+      resolve(null);
+      return;
+    }
+
+    // 先通过 IP 获取城市
+    const geoReq = https.get(`${WEATHER_CONFIG.geoUrl}/city/lookup?location=auto:ip&key=${WEATHER_CONFIG.apiKey}`, (geoRes) => {
+      let geoData = '';
+      geoRes.on('data', chunk => geoData += chunk);
+      geoRes.on('end', () => {
+        try {
+          const geo = JSON.parse(geoData);
+          if (!geo.location || !geo.location[0]) {
+            resolve(null);
+            return;
+          }
+          const cityId = geo.location[0].id;
+
+          // 获取天气
+          const weatherReq = https.get(`${WEATHER_CONFIG.baseUrl}/weather/now?location=${cityId}&key=${WEATHER_CONFIG.apiKey}`, (wRes) => {
+            let wData = '';
+            wRes.on('data', chunk => wData += chunk);
+            wRes.on('end', () => {
+              try {
+                const w = JSON.parse(wData);
+                if (w.now) {
+                  const result = {
+                    text: w.now.text,
+                    temp: w.now.temp,
+                    city: geo.location[0].name
+                  };
+                  weatherCache.data = result;
+                  weatherCache.ts = Date.now();
+                  resolve(result);
+                } else {
+                  resolve(null);
+                }
+              } catch { resolve(null); }
+            });
+          });
+          weatherReq.on('error', () => resolve(null));
+          weatherReq.setTimeout(3000, () => { weatherReq.destroy(); resolve(null); });
+        } catch { resolve(null); }
+      });
+    });
+    geoReq.on('error', () => resolve(null));
+    geoReq.setTimeout(3000, () => { geoReq.destroy(); resolve(null); });
+  });
+}
+
 // ============ System Prompts ============
 const PROMPTS = {
   response: `你是「留白」—— 一个安静的健康陪伴 AI。
@@ -367,6 +437,18 @@ const server = http.createServer((req, res) => {
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: e.message }));
       }
+    });
+    return;
+  }
+
+  // 天气 API
+  if (req.method === 'GET' && req.url === '/api/weather') {
+    getWeatherFromAPI().then(data => {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(data || { text: '', temp: '', city: '' }));
+    }).catch(() => {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ text: '', temp: '', city: '' }));
     });
     return;
   }

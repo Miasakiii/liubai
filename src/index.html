@@ -164,6 +164,61 @@
     animation: fadeIn 1s ease;
   }
 
+  /* 今日一句 */
+  .daily-quote {
+    font-size: 15px;
+    font-weight: 300;
+    color: var(--text-light);
+    letter-spacing: 1px;
+    margin-bottom: 48px;
+    line-height: 1.8;
+    opacity: 0;
+    animation: slideUp 0.8s var(--transition) 0.3s both;
+    cursor: default;
+    transition: opacity 0.5s ease;
+    position: relative;
+  }
+
+  .daily-quote::before,
+  .daily-quote::after {
+    content: '';
+    display: block;
+    width: 20px;
+    height: 1px;
+    background: var(--text-muted);
+    margin: 0 auto 16px;
+    opacity: 0.4;
+  }
+
+  .daily-quote::after {
+    margin: 16px auto 0;
+  }
+
+  .daily-quote.hidden {
+    opacity: 0;
+    height: 0;
+    margin: 0;
+    overflow: hidden;
+    transition: all 0.5s ease;
+  }
+
+  .daily-quote .fav-btn {
+    display: inline-block;
+    margin-top: 12px;
+    font-size: 12px;
+    color: var(--text-muted);
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-family: inherit;
+    padding: 4px 8px;
+    transition: all 0.3s;
+    letter-spacing: 1px;
+  }
+
+  .daily-quote .fav-btn:hover { color: var(--accent); }
+  .daily-quote .fav-btn.active { color: #e8868a; }
+
   .home-question {
     font-size: 28px;
     font-weight: 200;
@@ -473,6 +528,203 @@
     border-radius: 1px;
     width: 0%;
     transition: width 1s linear;
+  }
+
+  /* 情绪歌单卡片 */
+  .song-card {
+    display: none;
+    margin: 24px auto;
+    padding: 14px 20px;
+    background: var(--card);
+    backdrop-filter: blur(12px);
+    border-radius: 16px;
+    box-shadow: var(--shadow-sm);
+    max-width: 260px;
+    animation: scaleIn 0.4s var(--transition);
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .song-card.active { display: flex; }
+
+  .song-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .song-icon { font-size: 18px; }
+
+  .song-detail { min-width: 0; }
+
+  .song-name {
+    font-size: 13px;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .song-artist {
+    font-size: 11px;
+    color: var(--text-light);
+  }
+
+  .song-link {
+    font-size: 12px;
+    color: var(--accent);
+    text-decoration: none;
+    white-space: nowrap;
+    padding: 6px 12px;
+    border-radius: 12px;
+    transition: all 0.3s;
+    letter-spacing: 0.5px;
+  }
+
+  .song-link:hover {
+    background: var(--accent-soft);
+  }
+
+  /* 收藏按钮（回应页） */
+  .resp-fav-btn {
+    display: inline-block;
+    margin-top: 16px;
+    font-size: 12px;
+    color: var(--text-muted);
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-family: inherit;
+    padding: 6px 12px;
+    transition: all 0.3s;
+    letter-spacing: 1px;
+  }
+
+  .resp-fav-btn:hover { color: var(--accent); }
+  .resp-fav-btn.active { color: #e8868a; }
+
+  /* 收藏列表 */
+  .cal-fav-btn {
+    position: absolute;
+    top: 64px;
+    right: 24px;
+    font-size: 18px;
+    cursor: pointer;
+    border: none;
+    background: none;
+    padding: 8px;
+    transition: transform 0.3s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .cal-fav-btn:hover { transform: scale(1.15); }
+
+  .fav-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(247,245,240,0.96);
+    backdrop-filter: blur(20px);
+    z-index: 200;
+    overflow-y: auto;
+    padding: 64px 24px 100px;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .fav-overlay.active { display: block; }
+
+  .fav-header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  .fav-title {
+    font-size: 20px;
+    font-weight: 200;
+    letter-spacing: 4px;
+    margin-bottom: 8px;
+  }
+
+  .fav-close {
+    font-size: 12px;
+    color: var(--text-light);
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-family: inherit;
+    padding: 8px;
+    letter-spacing: 1px;
+  }
+
+  .fav-close:hover { color: var(--text); }
+
+  .fav-list {
+    max-width: 380px;
+    margin: 0 auto;
+  }
+
+  .fav-item {
+    padding: 16px 0;
+    border-bottom: 1px solid rgba(0,0,0,0.04);
+    animation: slideUp 0.3s var(--transition) both;
+  }
+
+  .fav-item-text {
+    font-size: 14px;
+    font-weight: 300;
+    line-height: 1.8;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  .fav-item-date {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .fav-item-remove {
+    font-size: 11px;
+    color: var(--text-muted);
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-family: inherit;
+    padding: 2px 6px;
+    margin-left: 8px;
+    transition: color 0.3s;
+  }
+
+  .fav-item-remove:hover { color: #e8868a; }
+
+  .fav-empty {
+    text-align: center;
+    font-size: 14px;
+    color: var(--text-light);
+    padding: 40px 0;
+    font-weight: 300;
+  }
+
+  /* ===== 晚安模式 ===== */
+  body.goodnight {
+    --bg: #1a1a2e;
+    --text: #d4d0c8;
+    --text-light: #8a8698;
+    --text-muted: #4a4660;
+    --accent: #6b5b8a;
+    --accent-soft: #2a2640;
+    --accent-glow: rgba(107, 91, 138, 0.15);
+    --card: rgba(40, 36, 60, 0.7);
+    --white: #2a2640;
+    --shadow-sm: 0 1px 8px rgba(0,0,0,0.15);
+    --shadow-md: 0 4px 24px rgba(0,0,0,0.2);
+  }
+
+  body.goodnight .home-question { font-weight: 300; }
+
+  body.goodnight .onboarding-overlay {
+    background: rgba(26, 26, 46, 0.95);
   }
 
   /* 完成按钮 */
@@ -900,6 +1152,7 @@
 <!-- ==================== 首页 ==================== -->
 <div id="page-home" class="page active">
   <div class="home-content">
+    <div class="daily-quote" id="dailyQuote"></div>
     <div class="brand">留 白</div>
     <h1 class="home-question">今天，还好吗？</h1>
     <div class="mood-row">
@@ -958,12 +1211,23 @@
         <div class="player-bar-fill" id="playerFill"></div>
       </div>
     </div>
+    <div class="song-card" id="songCard">
+      <div class="song-info">
+        <span class="song-icon">🎵</span>
+        <div class="song-detail">
+          <div class="song-name" id="songName"></div>
+          <div class="song-artist" id="songArtist"></div>
+        </div>
+      </div>
+      <a class="song-link" id="songLink" href="#" target="_blank" rel="noopener">去听 →</a>
+    </div>
     <button class="done-btn" onclick="goHome()">完 成</button>
   </div>
 </div>
 
 <!-- ==================== 日历页 ==================== -->
 <div id="page-calendar" class="page">
+  <button class="cal-fav-btn" onclick="toggleFavOverlay()">♡</button>
   <div class="cal-header">
     <h2 class="cal-month" id="calMonth">五月</h2>
     <p class="cal-sub">你的情绪日历</p>
@@ -973,6 +1237,15 @@
     <p class="cal-summary-text" id="calSummary"></p>
   </div>
   <button class="cal-back" onclick="goHome()">← 回到今天</button>
+</div>
+
+<!-- 收藏列表浮层 -->
+<div class="fav-overlay" id="favOverlay">
+  <div class="fav-header">
+    <h2 class="fav-title">收 藏</h2>
+    <button class="fav-close" onclick="toggleFavOverlay()">← 返回</button>
+  </div>
+  <div class="fav-list" id="favList"></div>
 </div>
 
 <!-- ==================== 设置页 ==================== -->
@@ -1006,6 +1279,13 @@
         <div class="setting-desc">每周日生成一段温暖的回顾</div>
       </div>
       <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+    </div>
+    <div class="setting-row">
+      <div class="setting-info">
+        <div class="setting-name">晚安模式</div>
+        <div class="setting-desc">22:00 后自动切换安静界面</div>
+      </div>
+      <button class="toggle ${isGoodnightEnabled() ? 'on' : ''}" onclick="toggleGoodnightSetting(this)"></button>
     </div>
   </div>
 </div>
@@ -1051,6 +1331,35 @@ function todayCount() {
   return getRecords()[today()] ? 1 : 0;
 }
 
+// ============ 收藏数据 ============
+const FAV_KEY = 'liubai_favorites';
+const FAV_KEY = 'liubai_favorites';
+
+function getFavorites() {
+  try { return JSON.parse(localStorage.getItem(FAV_KEY)) || []; }
+  catch { return []; }
+}
+
+function saveFavorites(favs) {
+  localStorage.setItem(FAV_KEY, JSON.stringify(favs));
+}
+
+function isFavorited(text) {
+  return getFavorites().some(f => f.text === text);
+}
+
+function toggleFavorite(text) {
+  const favs = getFavorites();
+  const idx = favs.findIndex(f => f.text === text);
+  if (idx >= 0) {
+    favs.splice(idx, 1);
+  } else {
+    favs.unshift({ text, date: today() });
+  }
+  saveFavorites(favs);
+  return idx < 0; // true = added, false = removed
+}
+
 // ============ 情绪映射 ============
 const MOOD = {
   great:   { e: '😊', label: '很好' },
@@ -1064,6 +1373,118 @@ const MOOD = {
 const AUDIO_ICONS = {
   '雨声': '🌧', '海浪': '🌊', '壁炉': '🔥', '风铃': '🎐', '深夜书店': '📚'
 };
+
+// ============ 今日一句 ============
+const DAILY_QUOTES = [
+const DAILY_QUOTES = [
+  '今天的风，好像有点甜。',
+  '不好不坏，也是一种状态。',
+  '有些天就是用来浪费的。',
+  '不用每天都很好。"还好"已经很努力了。',
+  '今天的你，不需要被定义。',
+  '给自己三分钟。什么都不用想。',
+  '就这样。挺好的。',
+  '不想说话的时候，沉默也是一种回答。',
+  '不用给自己的心情找原因。它在就好。',
+  '去接杯水吧。站着喝，别坐着。',
+  '今天的任务只有一个：活着。其他都算赚到。',
+  '累了就休息。不是偷懒，是必要的。',
+  '你不是机器。机器都需要充电。',
+  '坏情绪不是你的错。它只是来了。',
+  '你已经做得比你以为的多了。',
+  '有些天就是比较难。但你会过来的。',
+  '平凡的一天，也是只属于你的一天。',
+  '好日子不用多。有一条就够记住这个月了。',
+  '不想动的话，就坐着。坐着也是一种休息。',
+  '做完就去睡。明天的事明天再说。'
+];
+
+function getTodayQuote() {
+  const todayKey = new Date().toISOString().split('T')[0];
+  const stored = localStorage.getItem('liubai_quote');
+  if (stored) {
+    try {
+      const { date, index } = JSON.parse(stored);
+      if (date === todayKey && DAILY_QUOTES[index]) return DAILY_QUOTES[index];
+    } catch {}
+  }
+  // 基于日期的确定性索引，确保同一天不重复
+  const seed = todayKey.split('-').reduce((a, b) => a + parseInt(b), 0);
+  const index = seed % DAILY_QUOTES.length;
+  localStorage.setItem('liubai_quote', JSON.stringify({ date: todayKey, index }));
+  return DAILY_QUOTES[index];
+}
+
+// ============ 情绪歌单 ============
+const MOOD_SONGS = {
+  great: [
+    { name: '稻香', artist: '周杰伦', query: '稻香 周杰伦' },
+    { name: '倔强', artist: '五月天', query: '倔强 五月天' },
+    { name: '小幸运', artist: '田馥甄', query: '小幸运 田馥甄' }
+  ],
+  good: [
+    { name: '风吹麦浪', artist: '李健', query: '风吹麦浪 李健' },
+    { name: '成都', artist: '赵雷', query: '成都 赵雷' },
+    { name: '平凡之路', artist: '朴树', query: '平凡之路 朴树' }
+  ],
+  neutral: [
+    { name: '安和桥', artist: '宋冬野', query: '安和桥 宋冬野' },
+    { name: '南山南', artist: '马頔', query: '南山南 马頔' },
+    { name: '理想三旬', artist: '陈鸿宇', query: '理想三旬 陈鸿宇' }
+  ],
+  low: [
+    { name: '晴天', artist: '周杰伦', query: '晴天 周杰伦' },
+    { name: '后来', artist: '刘若英', query: '后来 刘若英' },
+    { name: '平凡之路', artist: '朴树', query: '平凡之路 朴树' }
+  ],
+  bad: [
+    { name: '夜空中最亮的星', artist: '逃跑计划', query: '夜空中最亮的星 逃跑计划' },
+    { name: '海阔天空', artist: 'Beyond', query: '海阔天空 Beyond' },
+    { name: '倔强', artist: '五月天', query: '倔强 五月天' }
+  ],
+  skip: [
+    { name: '平凡之路', artist: '朴树', query: '平凡之路 朴树' },
+    { name: '安和桥', artist: '宋冬野', query: '安和桥 宋冬野' }
+  ]
+};
+
+function getRandomSong(mood) {
+  const list = MOOD_SONGS[mood] || MOOD_SONGS.neutral;
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+// ============ 晚安模式 ============
+function isGoodnightTime() {
+  const h = new Date().getHours();
+  return h >= 22 || h < 6;
+}
+
+function isGoodnightEnabled() {
+  return localStorage.getItem('liubai_goodnight') !== 'off';
+}
+
+function initGoodnight() {
+  if (isGoodnightEnabled() && isGoodnightTime()) {
+    document.body.classList.add('goodnight');
+    // 替换今日一句为晚安文案
+    const el = document.getElementById('dailyQuote');
+    if (el) {
+      const quotes = ['晚安。', '今天辛苦了。', '明天的事明天再说。', '晚安，照顾好自己。', '夜深了，早点休息。'];
+      const idx = new Date().getDate() % quotes.length;
+      el.innerHTML = `<span class="quote-text">${quotes[idx]}</span>`;
+    }
+  }
+}
+
+function toggleGoodnightSetting(btn) {
+  const isOn = btn.classList.toggle('on');
+  localStorage.setItem('liubai_goodnight', isOn ? 'on' : 'off');
+  if (isOn && isGoodnightTime()) {
+    document.body.classList.add('goodnight');
+  } else {
+    document.body.classList.remove('goodnight');
+  }
+}
 
 // ============ 页面管理 ============
 let curPage = 'home';
@@ -1094,8 +1515,12 @@ function goHome() {
   document.getElementById('breathGuide').classList.remove('active');
   document.getElementById('breathSelector').classList.remove('active');
   document.getElementById('playerCard').classList.remove('active');
+  document.getElementById('songCard').classList.remove('active');
   if (window._breathTimer) clearTimeout(window._breathTimer);
   stopAudio();
+  // 恢复今日一句显示
+  const quote = document.getElementById('dailyQuote');
+  if (quote) quote.classList.remove('hidden');
   showPage('home');
 }
 
@@ -1107,6 +1532,10 @@ function selectMood(mood, btn) {
     btn.appendChild(rip);
     setTimeout(() => rip.remove(), 500);
   }
+  // 隐藏今日一句
+  const quote = document.getElementById('dailyQuote');
+  if (quote) quote.classList.add('hidden');
+  window._currentMood = mood;
   saveRecord(today(), mood);
   // 立即显示响应（无延迟）
   showResponse(mood);
@@ -1121,6 +1550,7 @@ function showResponse(mood) {
   document.getElementById('breathGuide').classList.remove('active');
   document.getElementById('breathSelector').classList.remove('active');
   document.getElementById('playerCard').classList.remove('active');
+  document.getElementById('songCard').classList.remove('active');
 
   // 立即显示响应页面（无延迟）
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -1184,9 +1614,33 @@ function getOfflineData(mood) {
     ]
   };
 
-  const list = OFFLINE[mood] || OFFLINE.neutral;
+  // 晚安模式下，优先返回带呼吸/白噪音的回应
+  let list = OFFLINE[mood] || OFFLINE.neutral;
+  if (isGoodnightEnabled() && isGoodnightTime() && ['low', 'bad', 'neutral'].includes(mood)) {
+    const withAudio = list.filter(r => r.action && r.action !== 'none');
+    if (withAudio.length > 0) list = withAudio;
+  }
   const pick = list[Math.floor(Math.random() * list.length)];
   return { text: pick.text, action: pick.action };
+}
+
+// 获取天气（缓存在 localStorage，30 分钟有效）
+async function fetchWeather() {
+  try {
+    const cached = localStorage.getItem('liubai_weather');
+    if (cached) {
+      const { data, ts } = JSON.parse(cached);
+      if (Date.now() - ts < 30 * 60 * 1000 && data && data.text) return data;
+    }
+
+    const resp = await fetch(API_BASE + '/api/weather', { signal: AbortSignal.timeout(3000) });
+    const data = await resp.json();
+    if (data && data.text) {
+      localStorage.setItem('liubai_weather', JSON.stringify({ data, ts: Date.now() }));
+      return data;
+    }
+    return null;
+  } catch { return null; }
 }
 
 // 获取AI响应
@@ -1194,6 +1648,11 @@ async function fetchAIResponse(mood) {
   try {
     const now = new Date();
     const timeStr = now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0');
+
+    // 并行获取天气和 AI 响应
+    const weather = await fetchWeather();
+    const weatherStr = weather ? `${weather.text} ${weather.temp}°C` : '';
+    const goodnight = isGoodnightEnabled() && isGoodnightTime();
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3000);
@@ -1203,8 +1662,8 @@ async function fetchAIResponse(mood) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         mood,
-        time: timeStr,
-        weather: '',
+        time: goodnight ? timeStr + '（深夜，优先推荐休息）' : timeStr,
+        weather: weatherStr,
         count: todayCount()
       }),
       signal: controller.signal
@@ -1220,11 +1679,32 @@ async function fetchAIResponse(mood) {
 function renderAIResponse(text, action, emoji) {
   const textEl = document.getElementById('respText');
   const lines = text.split('\n').filter(l => l.trim());
+  const favText = lines.join('\n');
+  const fav = isFavorited(favText);
   textEl.innerHTML = lines.map((l, i) =>
     `<div class="resp-line" style="animation-delay:${0.4 + i * 0.7}s">${l}</div>`
-  ).join('');
+  ).join('') + `<button class="resp-fav-btn ${fav ? 'active' : ''}" style="animation-delay:${0.4 + lines.length * 0.7}s" onclick="favResponse(this)">${fav ? '❤️ 已收藏' : '♡ 喜欢'}</button>`;
 
+  window._currentRespText = favText;
   handleAction(action);
+  showSongCard();
+}
+
+function favResponse(btn) {
+  const text = window._currentRespText || '';
+  const added = toggleFavorite(text);
+  btn.className = 'resp-fav-btn' + (added ? ' active' : '');
+  btn.textContent = added ? '❤️ 已收藏' : '♡ 喜欢';
+}
+
+function showSongCard() {
+  const mood = window._currentMood || 'neutral';
+  const song = getRandomSong(mood);
+  const card = document.getElementById('songCard');
+  document.getElementById('songName').textContent = song.name;
+  document.getElementById('songArtist').textContent = song.artist;
+  document.getElementById('songLink').href = `https://music.163.com/#/search/m/?s=${encodeURIComponent(song.query)}&type=1`;
+  card.classList.add('active');
 }
 
 // ============ 动作处理 ============
@@ -1424,6 +1904,41 @@ function simulatePlayer(name) {
   startAudio(name || '雨声');
 }
 
+// ============ 收藏列表 ============
+function toggleFavOverlay() {
+  const overlay = document.getElementById('favOverlay');
+  const isOpen = overlay.classList.contains('active');
+  if (isOpen) {
+    overlay.classList.remove('active');
+  } else {
+    renderFavorites();
+    overlay.classList.add('active');
+  }
+}
+
+function renderFavorites() {
+  const list = document.getElementById('favList');
+  const favs = getFavorites();
+  if (favs.length === 0) {
+    list.innerHTML = '<div class="fav-empty">还没有收藏。<br>看到喜欢的句子，点 ♡ 就好。</div>';
+    return;
+  }
+  list.innerHTML = favs.map((f, i) => `
+    <div class="fav-item" style="animation-delay:${i * 0.05}s">
+      <div class="fav-item-text">${f.text}</div>
+      <span class="fav-item-date">${f.date}</span>
+      <button class="fav-item-remove" onclick="removeFav(${i})">取消收藏</button>
+    </div>
+  `).join('');
+}
+
+function removeFav(index) {
+  const favs = getFavorites();
+  favs.splice(index, 1);
+  saveFavorites(favs);
+  renderFavorites();
+}
+
 // ============ 日历 ============
 function renderCalendar() {
   const now = new Date();
@@ -1560,8 +2075,10 @@ async function checkAI() {
 
 // ============ 初始化 ============
 document.addEventListener('DOMContentLoaded', () => {
+  initGoodnight();
   checkAI();
   initSeasonBar();
+  initDailyQuote();
 
   // 首次使用引导
   const seen = localStorage.getItem('liubai_onboarded');
@@ -1579,47 +2096,72 @@ function closeOnboarding() {
   localStorage.setItem('liubai_onboarded', '1');
 }
 
+// ============ 今日一句初始化 ============
+function initDailyQuote() {
+  const el = document.getElementById('dailyQuote');
+  if (!el) return;
+  const quote = getTodayQuote();
+  const fav = isFavorited(quote);
+  el.innerHTML = `<span class="quote-text">${quote}</span><br><button class="fav-btn ${fav ? 'active' : ''}" onclick="favDailyQuote(this)">${fav ? '❤️ 已收藏' : '♡ 喜欢'}</button>`;
+}
+
+function favDailyQuote(btn) {
+  const quote = btn.parentElement.querySelector('.quote-text').textContent;
+  const added = toggleFavorite(quote);
+  btn.className = 'fav-btn' + (added ? ' active' : '');
+  btn.textContent = added ? '❤️ 已收藏' : '♡ 喜欢';
+}
+
 // ============ 节气关怀 ============
 function initSeasonBar() {
   const bar = document.getElementById('seasonBar');
   const now = new Date();
   const m = now.getMonth() + 1;
   const d = now.getDate();
-  const h = now.getHours();
 
-  // 简易节气映射
+  // 节气文案映射
   const seasons = {
-    '1-5': '小寒', '1-20': '大寒', '2-3': '立春', '2-18': '雨水',
-    '3-5': '惊蛰', '3-20': '春分', '4-4': '清明', '4-19': '谷雨',
-    '5-5': '立夏', '5-20': '小满', '6-5': '芒种', '6-21': '夏至',
-    '7-6': '小暑', '7-22': '大暑', '8-7': '立秋', '8-22': '处暑',
-    '9-7': '白露', '9-22': '秋分', '10-8': '寒露', '10-23': '霜降',
-    '11-7': '立冬', '11-22': '小雪', '12-6': '大雪', '12-21': '冬至'
+    '1-5': { name: '小寒', text: '冷到不想动，那就别动了。' },
+    '1-20': { name: '大寒', text: '最冷的时候，春天就不远了。' },
+    '2-3': { name: '立春', text: '立春了。不用急着变好，慢慢来。' },
+    '2-18': { name: '雨水', text: '下雨了。今天可以慢一点。' },
+    '3-5': { name: '惊蛰', text: '春雷响了。万物在苏醒，你也可以慢慢来。' },
+    '3-20': { name: '春分', text: '昼夜平分。给自己一点平衡就好。' },
+    '4-4': { name: '清明', text: '天清地明。适合发呆，适合想念。' },
+    '4-19': { name: '谷雨', text: '谷雨过后，夏天就不远了。再撑一撑。' },
+    '5-5': { name: '立夏', text: '立夏了。热了就少穿点，累了就少做点。' },
+    '5-20': { name: '小满', text: '小满就好，不必大满。今天慢慢来。' },
+    '6-5': { name: '芒种', text: '忙的时候，也别忘了喝口水。' },
+    '6-21': { name: '夏至', text: '今天最长。多出来的光，留给自己。' },
+    '7-6': { name: '小暑', text: '热到什么都不想做，那就什么都不做。' },
+    '7-22': { name: '大暑', text: '最热的时候，照顾好自己。' },
+    '8-7': { name: '立秋', text: '秋天来了。适合慢下来。' },
+    '8-22': { name: '处暑', text: '暑气渐消。晚风会凉一点。' },
+    '9-7': { name: '白露', text: '白露了。早起记得加件衣服。' },
+    '9-22': { name: '秋分', text: '又是平分的一天。不多不少，刚刚好。' },
+    '10-8': { name: '寒露', text: '天凉了。喝杯热的吧。' },
+    '10-23': { name: '霜降', text: '霜降了。照顾好自己的小世界。' },
+    '11-7': { name: '立冬', text: '冬天来了。适合窝着，适合发呆。' },
+    '11-22': { name: '小雪', text: '下雪了。今天的安静，刚刚好。' },
+    '12-6': { name: '大雪', text: '大雪的日子，什么都不用做。' },
+    '12-21': { name: '冬至', text: '冬至了。今天最长的夜，明天会亮得更早。' }
   };
 
   const key = m + '-' + d;
   const season = seasons[key];
 
-  let text = '';
   if (season) {
-    text = `${season} · 小满就好，不必大满`;
-  } else if (h < 6) {
-    text = '夜深了，早点休息';
-  } else if (h < 9) {
-    text = '新的一天，慢慢来';
-  } else if (h < 12) {
-    text = '上午好，今天也要照顾好自己';
-  } else if (h < 14) {
-    text = '中午了，记得吃点好的';
-  } else if (h < 17) {
-    text = '下午好，站起来伸个懒腰';
-  } else if (h < 20) {
-    text = '傍晚了，今天的辛苦就留在这里';
+    bar.textContent = `🌱 ${season.name} · ${season.text}`;
+    bar.style.cursor = 'pointer';
+    bar.onclick = () => { bar.style.opacity = '0'; setTimeout(() => bar.style.display = 'none', 500); };
+    // 3 秒后自动收起
+    setTimeout(() => {
+      bar.style.opacity = '0';
+      setTimeout(() => { bar.style.display = 'none'; }, 500);
+    }, 5000);
   } else {
-    text = '晚上好，给自己一段安静';
+    bar.style.display = 'none';
   }
-
-  bar.textContent = text;
 }
 </script>
 
