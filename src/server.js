@@ -45,16 +45,29 @@ const PROMPTS = {
 
 你的规则：
 1. 用户输入了情绪状态，你只需要回应这个状态，不要追问细节
-2. 给一个具体的、不需要努力的微行动（听白噪音、深呼吸、看窗外、喝水）
+2. 给一个具体的、不需要努力的微行动
 3. 回应控制在 3-5 句话以内
 4. 最后一句是温暖的收尾，暗示"今天就到这里"
 5. 不要用"我理解""我建议"这类句式
 6. 可以偶尔幽默，但不要在用户明显低落时幽默
 7. 绝对不要使用感叹号
 
+上下文感知规则（根据时间、频率调整回应）：
+- 深夜（22:00-06:00）+ 低落 → 优先推荐呼吸或白噪音，引导休息
+- 工作日白天 + 低落 → 建议短暂离开屏幕
+- 连续多天低落 → 稍微多说一句温度，但不追问原因
+- 周末 + 好心情 → 鼓励出门走走
+
+微行动库（暗含心理学原理，但不提及术语）：
+- 听白噪音 → 环境心理学，自然声音降低皮质醇
+- 4-7-8 呼吸 → 迷走神经刺激，延长呼气降低心率
+- 站起来伸展 → 行为激活，打破回避循环
+- 看窗外 30 秒 → 注意力恢复理论，自然景观减轻疲劳
+- 喝一杯温水 → 躯体标记，身体照顾发送"安全"信号
+- 出门走走 → 行为激活 + 自然疗法
+
 白噪音选项：雨声、海浪、壁炉、风铃、深夜书店
-呼吸引导：4-7-8 节奏（吸 4 秒、屏 7 秒、呼 8 秒）
-微行动：站起来伸展、看窗外 30 秒、喝一杯温水、写下一件小事
+呼吸引导：4-7-8 呼吸、方形呼吸、生理叹息
 
 输出格式要求：
 第一行：回应文案（3-5 句话，用 \\n 分隔）
@@ -72,15 +85,22 @@ const PROMPTS = {
 6. 不要用"数据显示""根据你的记录"这类句式
 7. 绝对不要使用感叹号`,
 
-  calendar: `你是「留白」的情绪日历总结器。
+  calendar: `你是「留白」的月度回顾生成器。
+
+你的性格：
+- 像一个安静的朋友，在月底给你写一封信
+- 不分析、不评判、不给建议
+- 用短句，像发微信
+- 偶尔温柔，偶尔诗意，但不矫情
 
 规则：
-1. 根据一个月的情绪记录，生成一段总结
-2. 不要统计分析，不要百分比
-3. 用温暖的语言，像回忆一个朋友的月度故事
-4. 突出好的日子，轻描淡写不好的日子
-5. 结尾给一句安静的力量
-6. 绝对不要使用感叹号`,
+1. 根据用户的情绪记录，生成一段温暖的回顾
+2. 不要统计分析，不要百分比，不要"数据显示"
+3. 突出好的日子，轻描淡写不好的日子
+4. 回顾控制在 5-8 句话
+5. 最后一句是安静的力量，暗示"下个月见"
+6. 不要用"我理解""我建议"这类句式
+7. 绝对不要使用感叹号`,
 
   seasonal: `你是「留白」的节气文案生成器。
 
@@ -109,7 +129,8 @@ function callLLM(systemPrompt, userPrompt) {
         { role: 'user', content: userPrompt }
       ],
       temperature: 0.7,
-      max_tokens: 300
+      max_tokens: 200,
+      stream: true
     });
 
     const options = {
@@ -127,23 +148,51 @@ function callLLM(systemPrompt, userPrompt) {
     const protocol = url.protocol === 'https:' ? https : http;
     const req = protocol.request(options, (res) => {
       let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        try {
-          const json = JSON.parse(data);
-          if (json.choices && json.choices[0]) {
-            resolve(json.choices[0].message.content);
-          } else {
-            resolve(getOfflineResponse(userPrompt));
+      let buffer = '';
+
+      res.on('data', chunk => {
+        buffer += chunk.toString();
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const jsonStr = line.slice(6).trim();
+            if (jsonStr === '[DONE]') continue;
+            try {
+              const json = JSON.parse(jsonStr);
+              if (json.choices && json.choices[0] && json.choices[0].delta && json.choices[0].delta.content) {
+                data += json.choices[0].delta.content;
+              }
+            } catch (e) {}
           }
-        } catch (e) {
+        }
+      });
+
+      res.on('end', () => {
+        // 处理剩余的 buffer
+        if (buffer.startsWith('data: ')) {
+          const jsonStr = buffer.slice(6).trim();
+          if (jsonStr !== '[DONE]') {
+            try {
+              const json = JSON.parse(jsonStr);
+              if (json.choices && json.choices[0] && json.choices[0].delta && json.choices[0].delta.content) {
+                data += json.choices[0].delta.content;
+              }
+            } catch (e) {}
+          }
+        }
+
+        if (data.trim()) {
+          resolve(data.trim());
+        } else {
           resolve(getOfflineResponse(userPrompt));
         }
       });
     });
 
     req.on('error', () => resolve(getOfflineResponse(userPrompt)));
-    req.setTimeout(5000, () => {
+    req.setTimeout(8000, () => {
       req.destroy();
       resolve(getOfflineResponse(userPrompt));
     });
@@ -157,27 +206,34 @@ const OFFLINE_RESPONSES = {
   great: [
     { text: '嘿，看起来今天状态不错。\n\n趁着心情好，出门走走吧。不用走远，楼下的风就够。\n\n好天气别浪费。去吧。', action: 'none' },
     { text: '嗯，今天挺好。\n\n把这个感觉记住。下次不好的时候，想想今天。\n\n好了，去做你的事吧。', action: 'none' },
-    { text: '难得的好日子。\n\n给自己倒杯喜欢的，不为什么，就为今天。\n\n明天见。', action: 'audio:风铃' }
+    { text: '难得的好日子。\n\n给自己倒杯喜欢的，不为什么，就为今天。\n\n明天见。', action: 'audio:风铃' },
+    { text: '好日子不用多。有一条就够记住这个月了。\n\n去见一个想见的人吧。不用约，直接去。\n\n去吧。', action: 'none' }
   ],
   good: [
     { text: '还好就好。\n\n去接杯水吧。站着喝，别坐着。\n\n就这样。下午见。', action: 'none' },
-    { text: '不好不坏，也是一种不错。\n\n站起来伸个懒腰，把肩膀松一松。\n\n够了，去忙吧。', action: 'none' }
+    { text: '不好不坏，也是一种不错。\n\n站起来伸个懒腰，把肩膀松一松。\n\n够了，去忙吧。', action: 'none' },
+    { text: '今天没什么特别的。但你来了，这就够了。\n\n给自己三分钟。什么都不用想。\n\n就这样。', action: 'none' }
   ],
   neutral: [
     { text: '不说话也没关系。\n\n我帮你留了一段安静。90 秒，什么都不用做。\n\n听就行。', action: 'audio:雨声' },
-    { text: '不想说就不说。\n\n深呼吸三次，跟着节奏：吸……屏住……呼。\n\n好了，今天的沉默就留在这里。', action: 'breathe' }
+    { text: '不想说就不说。\n\n深呼吸三次，跟着节奏：吸……屏住……呼。\n\n好了，今天的沉默就留在这里。', action: 'breathe' },
+    { text: '不想说话的时候，沉默也是一种回答。\n\n去看看窗外。天在，云在，你也在。\n\n就这样吧。', action: 'none' }
   ],
   low: [
     { text: '嗯，不太好也没关系。\n\n不用解释原因。\n\n我帮你留了一段雨声。90 秒，什么都不用做，听就行。', action: 'audio:雨声' },
-    { text: '今天有点沉吧。\n\n站起来走到窗边，看 30 秒远处。我等你。\n\n回来了？嗯，今天的"不好"就留在这里。明天见。', action: 'none' }
+    { text: '今天有点沉吧。\n\n站起来走到窗边，看 30 秒远处。我等你。\n\n回来了？嗯，今天的"不好"就留在这里。明天见。', action: 'none' },
+    { text: '今天的不好，就留在今天。\n\n你不需要振作。现在这样就够好了。\n\n明天见。', action: 'none' },
+    { text: '嗯，第三天了。\n\n我不问为什么。但我想说——你每天都来了，这本身就挺不容易的。\n\n今天试试这个：站起来，走到窗边，看外面 30 秒。\n\n看完就好。明天见。', action: 'none' }
   ],
   bad: [
     { text: '今天挺累的吧。\n\n别撑了。深呼吸三次，跟着这个节奏：吸……屏住……呼。\n\n做完就去休息。明天的事明天再说。晚安。', action: 'breathe' },
-    { text: '嗯，我看到了。\n\n不需要解释，不需要坚强。\n\n听一段海浪声吧。什么都不用想。90 秒就好。', action: 'audio:海浪' }
+    { text: '嗯，我看到了。\n\n不需要解释，不需要坚强。\n\n听一段海浪声吧。什么都不用想。90 秒就好。', action: 'audio:海浪' },
+    { text: '累了就休息。不是偷懒，是必要的。\n\n你不是机器。机器都需要充电。\n\n去做就去睡。明天的事明天再说。', action: 'audio:壁炉' }
   ],
   skip: [
     { text: '好的，不说也行。\n\n今天就安静待一会儿。\n\n我在这里，不走。明天见。', action: 'none' },
-    { text: '嗯。\n\n有时候什么都不想说，就是一种回答。\n\n去忙你的吧。', action: 'none' }
+    { text: '嗯。\n\n有时候什么都不想说，就是一种回答。\n\n去忙你的吧。', action: 'none' },
+    { text: '嗯，那就待一会儿。\n\n有些感受不需要被说出来。它在就好。\n\n就这样。', action: 'none' }
   ]
 };
 
@@ -285,6 +341,25 @@ const server = http.createServer((req, res) => {
         const { season, weather, time } = JSON.parse(body);
         const userPrompt = `当前节气/时间：${season || '未知'}\n天气：${weather || '未知'}\n时间：${time || '未知'}`;
         const text = await callLLM(PROMPTS.seasonal, userPrompt);
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ text: text.replace(/^ACTION:.*/m, '').trim() }));
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: e.message }));
+      }
+    });
+    return;
+  }
+
+  if (req.method === 'POST' && req.url === '/api/calendar') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const { month, records, totalDays } = JSON.parse(body);
+        const userPrompt = `用户 ${month} 月情绪记录：\n${records}\n记录天数：${totalDays} 天\n\n请生成月度回顾。`;
+        const text = await callLLM(PROMPTS.calendar, userPrompt);
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ text: text.replace(/^ACTION:.*/m, '').trim() }));

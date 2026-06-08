@@ -350,6 +350,75 @@
     animation: breatheRing 4s ease-in-out infinite;
   }
 
+  /* 呼吸类型选择 */
+  .breath-selector {
+    display: none;
+    margin: 24px auto;
+    max-width: 280px;
+    animation: scaleIn 0.4s var(--transition);
+  }
+
+  .breath-selector.active { display: block; }
+
+  .breath-option {
+    display: flex;
+    align-items: center;
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    background: var(--card);
+    backdrop-filter: blur(12px);
+    border-radius: 14px;
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    transition: all 0.3s var(--transition);
+    border: none;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .breath-option:hover {
+    background: var(--white);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+  }
+
+  .breath-option:active {
+    transform: scale(0.98);
+  }
+
+  .breath-option-icon {
+    font-size: 20px;
+    margin-right: 12px;
+    width: 32px;
+    text-align: center;
+  }
+
+  .breath-option-info {
+    flex: 1;
+  }
+
+  .breath-option-name {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+
+  .breath-option-desc {
+    font-size: 11px;
+    color: var(--text-light);
+  }
+
+  .breath-rounds {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 12px;
+    text-align: center;
+    letter-spacing: 1px;
+  }
+
   /* 音频播放器 */
   .player-card {
     display: none;
@@ -850,11 +919,35 @@
   <div class="resp-container">
     <div class="resp-emoji" id="respEmoji"></div>
     <div class="resp-text" id="respText"></div>
+    <div class="breath-selector" id="breathSelector">
+      <button class="breath-option" onclick="startBreathingWithType('478')">
+        <span class="breath-option-icon">○</span>
+        <div class="breath-option-info">
+          <div class="breath-option-name">4-7-8 呼吸</div>
+          <div class="breath-option-desc">帮你平静下来</div>
+        </div>
+      </button>
+      <button class="breath-option" onclick="startBreathingWithType('box')">
+        <span class="breath-option-icon">□</span>
+        <div class="breath-option-info">
+          <div class="breath-option-name">方形呼吸</div>
+          <div class="breath-option-desc">帮你稳定专注</div>
+        </div>
+      </button>
+      <button class="breath-option" onclick="startBreathingWithType('sigh')">
+        <span class="breath-option-icon">◡</span>
+        <div class="breath-option-info">
+          <div class="breath-option-name">生理叹息</div>
+          <div class="breath-option-desc">快速缓解紧张</div>
+        </div>
+      </button>
+    </div>
     <div class="breath-guide" id="breathGuide">
       <div class="breath-ring"></div>
       <div class="breath-circle">
         <span class="breath-label" id="breathLabel">吸 …</span>
       </div>
+      <div class="breath-rounds" id="breathRounds"></div>
     </div>
     <div class="player-card" id="playerCard">
       <div class="player-header">
@@ -999,9 +1092,10 @@ function goTo(name) { showPage(name); }
 
 function goHome() {
   document.getElementById('breathGuide').classList.remove('active');
+  document.getElementById('breathSelector').classList.remove('active');
   document.getElementById('playerCard').classList.remove('active');
   if (window._breathTimer) clearTimeout(window._breathTimer);
-  if (window._playerTimer) clearInterval(window._playerTimer);
+  stopAudio();
   showPage('home');
 }
 
@@ -1025,29 +1119,33 @@ function showResponse(mood) {
   document.getElementById('respText').innerHTML = '';
 
   document.getElementById('breathGuide').classList.remove('active');
+  document.getElementById('breathSelector').classList.remove('active');
   document.getElementById('playerCard').classList.remove('active');
 
   // 立即显示响应页面（无延迟）
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-response').classList.add('active');
 
-  // 立即显示离线响应（最快体验，不等待任何网络请求）
-  const offlineData = getOfflineData(mood);
-  renderAIResponse(offlineData.text, offlineData.action, emoji);
-
-  // 后台尝试获取AI响应（不阻塞显示，5秒超时）
+  // AI 已连接时：先显示加载状态，等 AI 响应后直接显示
   if (window._aiStatus !== 'offline') {
-    const timeoutPromise = new Promise(resolve => setTimeout(() => resolve(null), 5000));
-    const aiPromise = fetchAIResponse(mood);
+    document.getElementById('respText').innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
 
-    Promise.race([aiPromise, timeoutPromise]).then(result => {
+    fetchAIResponse(mood).then(result => {
       if (result && result.text) {
-        // AI响应成功，替换离线响应
         renderAIResponse(result.text, result.action, emoji);
+      } else {
+        // AI 响应失败，降级到离线
+        const offlineData = getOfflineData(mood);
+        renderAIResponse(offlineData.text, offlineData.action, emoji);
       }
     }).catch(() => {
-      // 保持离线响应
+      const offlineData = getOfflineData(mood);
+      renderAIResponse(offlineData.text, offlineData.action, emoji);
     });
+  } else {
+    // 离线模式：直接显示离线响应
+    const offlineData = getOfflineData(mood);
+    renderAIResponse(offlineData.text, offlineData.action, emoji);
   }
 }
 
@@ -1056,27 +1154,33 @@ function getOfflineData(mood) {
   const OFFLINE = {
     great: [
       { text: '嘿，看起来今天状态不错。\n\n趁着心情好，出门走走吧。不用走远，楼下的风就够。\n\n好天气别浪费。去吧。', action: 'none' },
-      { text: '嗯，今天挺好。\n\n把这个感觉记住。下次不好的时候，想想今天。\n\n好了，去做你的事吧。', action: 'none' }
+      { text: '嗯，今天挺好。\n\n把这个感觉记住。下次不好的时候，想想今天。\n\n好了，去做你的事吧。', action: 'none' },
+      { text: '好日子不用多。有一条就够记住这个月了。\n\n去见一个想见的人吧。不用约，直接去。\n\n去吧。', action: 'none' }
     ],
     good: [
       { text: '还好就好。\n\n去接杯水吧。站着喝，别坐着。\n\n就这样。下午见。', action: 'none' },
-      { text: '不好不坏，也是一种不错。\n\n站起来伸个懒腰，把肩膀松一松。\n\n够了，去忙吧。', action: 'none' }
+      { text: '不好不坏，也是一种不错。\n\n站起来伸个懒腰，把肩膀松一松。\n\n够了，去忙吧。', action: 'none' },
+      { text: '今天没什么特别的。但你来了，这就够了。\n\n给自己三分钟。什么都不用想。\n\n就这样。', action: 'none' }
     ],
     neutral: [
       { text: '不说话也没关系。\n\n我帮你留了一段安静。90 秒，什么都不用做。\n\n听就行。', action: 'audio:雨声' },
-      { text: '不想说就不说。\n\n深呼吸三次，跟着节奏：吸……屏住……呼。\n\n好了，今天的沉默就留在这里。', action: 'breathe' }
+      { text: '不想说就不说。\n\n深呼吸三次，跟着节奏：吸……屏住……呼。\n\n好了，今天的沉默就留在这里。', action: 'breathe' },
+      { text: '不想说话的时候，沉默也是一种回答。\n\n去看看窗外。天在，云在，你也在。\n\n就这样吧。', action: 'none' }
     ],
     low: [
       { text: '嗯，不太好也没关系。\n\n不用解释原因。\n\n我帮你留了一段雨声。90 秒，什么都不用做，听就行。', action: 'audio:雨声' },
-      { text: '今天有点沉吧。\n\n站起来走到窗边，看 30 秒远处。我等你。\n\n回来了？嗯，今天的"不好"就留在这里。明天见。', action: 'none' }
+      { text: '今天有点沉吧。\n\n站起来走到窗边，看 30 秒远处。我等你。\n\n回来了？嗯，今天的"不好"就留在这里。明天见。', action: 'none' },
+      { text: '今天的不好，就留在今天。\n\n你不需要振作。现在这样就够好了。\n\n明天见。', action: 'none' }
     ],
     bad: [
       { text: '今天挺累的吧。\n\n别撑了。深呼吸三次，跟着这个节奏：吸……屏住……呼。\n\n做完就去休息。明天的事明天再说。晚安。', action: 'breathe' },
-      { text: '嗯，我看到了。\n\n不需要解释，不需要坚强。\n\n听一段海浪声吧。什么都不用想。90 秒就好。', action: 'audio:海浪' }
+      { text: '嗯，我看到了。\n\n不需要解释，不需要坚强。\n\n听一段海浪声吧。什么都不用想。90 秒就好。', action: 'audio:海浪' },
+      { text: '累了就休息。不是偷懒，是必要的。\n\n你不是机器。机器都需要充电。\n\n去做就去睡。明天的事明天再说。', action: 'audio:壁炉' }
     ],
     skip: [
       { text: '好的，不说也行。\n\n今天就安静待一会儿。\n\n我在这里，不走。明天见。', action: 'none' },
-      { text: '嗯。\n\n有时候什么都不想说，就是一种回答。\n\n去忙你的吧。', action: 'none' }
+      { text: '嗯。\n\n有时候什么都不想说，就是一种回答。\n\n去忙你的吧。', action: 'none' },
+      { text: '嗯，那就待一会儿。\n\n有些感受不需要被说出来。它在就好。\n\n就这样。', action: 'none' }
     ]
   };
 
@@ -1128,8 +1232,6 @@ function handleAction(action) {
   if (!action || action === 'none') return;
 
   if (action === 'breathe') {
-    const guide = document.getElementById('breathGuide');
-    guide.classList.add('active');
     startBreathing();
   }
 
@@ -1139,44 +1241,187 @@ function handleAction(action) {
     document.getElementById('playerIcon').textContent = AUDIO_ICONS[name] || '🎵';
     document.getElementById('playerName').textContent = name;
     card.classList.add('active');
-    simulatePlayer();
+    simulatePlayer(name);
   }
 }
 
 // ============ 呼吸引导 ============
-function startBreathing() {
-  const label = document.getElementById('breathLabel');
-  const phases = [
-    { text: '吸 …', ms: 4000 },
-    { text: '屏住 …', ms: 7000 },
-    { text: '呼 …', ms: 8000 }
-  ];
-  let i = 0;
-  function tick() {
-    label.textContent = phases[i].text;
-    const ms = phases[i].ms;
-    i = (i + 1) % phases.length;
-    window._breathTimer = setTimeout(tick, ms);
+const BREATH_TYPES = {
+  '478': {
+    name: '4-7-8 呼吸',
+    phases: [
+      { text: '吸 …', ms: 4000 },
+      { text: '屏住 …', ms: 7000 },
+      { text: '呼 …', ms: 8000 }
+    ],
+    rounds: 3,
+    circleDuration: 19
+  },
+  'box': {
+    name: '方形呼吸',
+    phases: [
+      { text: '吸 …', ms: 4000 },
+      { text: '屏住 …', ms: 4000 },
+      { text: '呼 …', ms: 4000 },
+      { text: '屏住 …', ms: 4000 }
+    ],
+    rounds: 4,
+    circleDuration: 16
+  },
+  'sigh': {
+    name: '生理叹息',
+    phases: [
+      { text: '吸 …', ms: 2000 },
+      { text: '再吸一点 …', ms: 1000 },
+      { text: '慢慢呼出来 …', ms: 4000 }
+    ],
+    rounds: 3,
+    circleDuration: 7
   }
+};
+
+function startBreathing() {
+  // 默认显示类型选择器
+  document.getElementById('breathSelector').classList.add('active');
+  document.getElementById('breathGuide').classList.remove('active');
+}
+
+function startBreathingWithType(type) {
+  const config = BREATH_TYPES[type];
+  if (!config) return;
+
+  // 隐藏选择器，显示引导
+  document.getElementById('breathSelector').classList.remove('active');
+  const guide = document.getElementById('breathGuide');
+  guide.classList.add('active');
+
+  // 更新圆圈动画时长
+  const circle = guide.querySelector('.breath-circle');
+  circle.style.animationDuration = config.circleDuration + 's';
+
+  const label = document.getElementById('breathLabel');
+  const roundsEl = document.getElementById('breathRounds');
+
+  let phaseIndex = 0;
+  let currentRound = 1;
+
+  function tick() {
+    if (phaseIndex >= config.phases.length) {
+      // 一轮结束
+      if (currentRound >= config.rounds) {
+        // 全部完成
+        roundsEl.textContent = '完成';
+        label.textContent = '好了';
+        return;
+      }
+      currentRound++;
+      phaseIndex = 0;
+    }
+
+    const phase = config.phases[phaseIndex];
+    label.textContent = phase.text;
+    roundsEl.textContent = currentRound + ' / ' + config.rounds + ' 轮';
+    phaseIndex++;
+
+    window._breathTimer = setTimeout(tick, phase.ms);
+  }
+
   tick();
 }
 
-// ============ 音频模拟 ============
-function simulatePlayer() {
+// ============ 音频播放 ============
+// 使用免费在线音频源
+const AUDIO_URLS = {
+  '雨声': 'https://cdn.pixabay.com/audio/2022/05/27/audio_1808fbf07a.mp3',
+  '海浪': 'https://cdn.pixabay.com/audio/2022/10/30/audio_710a1ee5a8.mp3',
+  '壁炉': 'https://cdn.pixabay.com/audio/2022/11/22/audio_317438581c.mp3',
+  '风铃': 'https://cdn.pixabay.com/audio/2024/11/29/audio_2b0f0b0b0b.mp3',
+  '深夜书店': 'https://cdn.pixabay.com/audio/2024/02/14/audio_5f0e0b0b0b.mp3'
+};
+
+let currentAudio = null;
+let audioTimer = null;
+
+function startAudio(name) {
+  stopAudio();
+
+  const url = AUDIO_URLS[name] || AUDIO_URLS['雨声'];
+  const audio = new Audio(url);
+  audio.loop = true;
+  audio.volume = 0.4;
+
+  audio.play().catch(() => {
+    // 如果在线音频失败，使用本地生成
+    startLocalAudio(name);
+  });
+
+  currentAudio = audio;
+
+  // 进度条
   let sec = 0;
   const total = 90;
   const fill = document.getElementById('playerFill');
-  const time = document.getElementById('playerTime');
+  const timeEl = document.getElementById('playerTime');
 
-  if (window._playerTimer) clearInterval(window._playerTimer);
-
-  window._playerTimer = setInterval(() => {
+  if (audioTimer) clearInterval(audioTimer);
+  audioTimer = setInterval(() => {
     sec++;
     fill.style.width = (sec / total * 100) + '%';
     const rem = total - sec;
-    time.textContent = Math.floor(rem / 60) + ':' + String(rem % 60).padStart(2, '0');
-    if (sec >= total) clearInterval(window._playerTimer);
+    timeEl.textContent = Math.floor(rem / 60) + ':' + String(rem % 60).padStart(2, '0');
+    if (sec >= total) stopAudio();
   }, 1000);
+}
+
+// 本地生成备用方案
+function startLocalAudio(name) {
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  const ctx = new AudioCtx();
+  const bufferSize = ctx.sampleRate * 2;
+  const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+
+  // 生成粉红噪音作为基础
+  for (let i = 0; i < bufferSize; i++) {
+    const white = Math.random() * 2 - 1;
+    data[i] = (data[i-1] || 0) * 0.97 + white * 0.03;
+  }
+
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+  source.loop = true;
+
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.value = 800;
+
+  const gain = ctx.createGain();
+  gain.gain.value = 0.3;
+
+  source.connect(filter);
+  filter.connect(gain);
+  gain.connect(ctx.destination);
+  source.start();
+
+  currentAudio = { stop: () => { try { source.stop(); } catch(e) {} } };
+}
+
+function stopAudio() {
+  if (currentAudio) {
+    try {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+    } catch(e) {}
+    currentAudio = null;
+  }
+  if (audioTimer) {
+    clearInterval(audioTimer);
+    audioTimer = null;
+  }
+}
+
+function simulatePlayer(name) {
+  startAudio(name || '雨声');
 }
 
 // ============ 日历 ============
@@ -1240,19 +1485,55 @@ function renderCalendar() {
   const total = monthRecs.length;
   const good = monthRecs.filter(([,r]) => ['great','good'].includes(r.mood)).length;
   const bad = monthRecs.filter(([,r]) => ['low','bad'].includes(r.mood)).length;
+  const neutral = monthRecs.filter(([,r]) => ['neutral','skip'].includes(r.mood)).length;
 
+  // 离线总结
   let summary = '';
   if (total === 0) {
     summary = '还没有记录。没关系，慢慢来。';
   } else {
-    summary = `这个月你记录了 ${total} 天。\n`;
+    summary = `这个月你来了 ${total} 天。\n`;
     if (good > 0) summary += `有 ${good} 天还不错。`;
     if (bad > 0) summary += `有 ${bad} 天不太好。`;
-    if (good === 0 && bad === 0) summary += `不好不坏，也是一种日常。`;
+    if (neutral > 0) summary += `有 ${neutral} 天只是来坐坐。`;
     summary += `\n\n但你每天都来了。这本身就是一种照顾自己。`;
+    summary += `\n\n下个月见。不用更好，就这样就好。`;
   }
 
-  document.getElementById('calSummary').textContent = summary;
+  // AI 已连接时：先显示加载，等 AI 响应后直接显示
+  if (window._aiStatus !== 'offline' && total > 0) {
+    document.getElementById('calSummary').innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
+    fetchMonthlyReview(monthRecs, y, m + 1);
+  } else {
+    document.getElementById('calSummary').textContent = summary;
+  }
+}
+
+// ============ AI 月度回顾 ============
+async function fetchMonthlyReview(monthRecs, year, month) {
+  try {
+    const moodEmojis = { great: '😊', good: '🙂', neutral: '😐', low: '😔', bad: '😫', skip: '🌙' };
+    const records = monthRecs.map(([date, r]) => `${date.split('-')[2]}日：${moodEmojis[r.mood] || '·'}`).join(' | ');
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+    const resp = await fetch(API_BASE + '/api/calendar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ month, records, totalDays: monthRecs.length }),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+    const data = await resp.json();
+
+    if (data && data.text) {
+      document.getElementById('calSummary').textContent = data.text;
+    }
+  } catch {
+    // 保持离线总结
+  }
 }
 
 // ============ AI 状态检查 ============
