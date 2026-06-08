@@ -44,6 +44,27 @@ const WEATHER_CONFIG = {
 const weatherCache = { data: null, ts: 0 };
 const WEATHER_CACHE_TTL = 30 * 60 * 1000;
 
+// 社群暗示数据（内存，每小时重置）
+const socialHintData = {
+  moods: { great: 0, good: 0, neutral: 0, low: 0, bad: 0, skip: 0 },
+  whiteNoise: { rain: 0, ocean: 0, fireplace: 0, windChime: 0, bookstore: 0 },
+  breathing: 0,
+  silentMode: 0,
+  lateNight: 0,
+  lastReset: Date.now(),
+};
+
+function resetSocialHintIfNeeded() {
+  if (Date.now() - socialHintData.lastReset > 3600000) {
+    socialHintData.moods = { great: 0, good: 0, neutral: 0, low: 0, bad: 0, skip: 0 };
+    socialHintData.whiteNoise = { rain: 0, ocean: 0, fireplace: 0, windChime: 0, bookstore: 0 };
+    socialHintData.breathing = 0;
+    socialHintData.silentMode = 0;
+    socialHintData.lateNight = 0;
+    socialHintData.lastReset = Date.now();
+  }
+}
+
 function getWeatherFromAPI() {
   return new Promise((resolve) => {
     // 检查缓存
@@ -450,6 +471,78 @@ const server = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ text: '', temp: '', city: '' }));
     });
+    return;
+  }
+
+  // 上报用户行为（社群暗示）
+  if (req.method === 'POST' && req.url === '/api/social-hint/report') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const { type, value } = JSON.parse(body);
+        resetSocialHintIfNeeded();
+        if (type === 'mood' && socialHintData.moods[value] !== undefined) {
+          socialHintData.moods[value]++;
+        } else if (type === 'whiteNoise' && socialHintData.whiteNoise[value] !== undefined) {
+          socialHintData.whiteNoise[value]++;
+        } else if (type === 'breathing') {
+          socialHintData.breathing++;
+        } else if (type === 'silentMode') {
+          socialHintData.silentMode++;
+        } else if (type === 'lateNight') {
+          socialHintData.lateNight++;
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true }));
+      } catch (e) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false }));
+      }
+    });
+    return;
+  }
+
+  // 查询社群暗示
+  if (req.method === 'GET' && req.url.startsWith('/api/social-hint')) {
+    resetSocialHintIfNeeded();
+    const urlObj = new URL(req.url, `http://${req.headers.host}`);
+
+    if (urlObj.pathname === '/api/social-hint/summary') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(socialHintData));
+      return;
+    }
+
+    const type = urlObj.searchParams.get('type');
+    const value = urlObj.searchParams.get('value');
+    let count = 0;
+    let message = '';
+
+    const HINT_TEMPLATES = {
+      whiteNoise: { rain: '听雨声', ocean: '听海浪', fireplace: '听壁炉', windChime: '听风铃', bookstore: '听深夜书店' },
+      mood: { great: '心情很好', good: '心情还好', neutral: '心情一般', low: '有点低落', bad: '不太好', skip: '不想说' },
+    };
+
+    if (type === 'whiteNoise' && socialHintData.whiteNoise[value] !== undefined) {
+      count = socialHintData.whiteNoise[value];
+      message = `今天有 ${count} 人也选择了${HINT_TEMPLATES.whiteNoise[value] || '听白噪音'}`;
+    } else if (type === 'mood' && socialHintData.moods[value] !== undefined) {
+      count = socialHintData.moods[value];
+      message = `今天有 ${count} 人也${HINT_TEMPLATES.mood[value] || '记录了情绪'}`;
+    } else if (type === 'breathing') {
+      count = socialHintData.breathing;
+      message = `今天有 ${count} 人也做了呼吸引导`;
+    } else if (type === 'silentMode') {
+      count = socialHintData.silentMode;
+      message = `今天有 ${count} 人也没说话`;
+    } else if (type === 'lateNight') {
+      count = socialHintData.lateNight;
+      message = `现在有 ${count} 人也醒着`;
+    }
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ count, message }));
     return;
   }
 

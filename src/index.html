@@ -587,6 +587,155 @@
     background: var(--accent-soft);
   }
 
+  /* 情绪树洞 */
+  .tree-hole-entry {
+    margin: 20px auto 0;
+    text-align: center;
+    animation: fadeInUp 0.6s var(--transition);
+  }
+
+  .tree-hole-entry span {
+    font-size: 14px;
+    color: var(--text-muted);
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: color 0.3s;
+  }
+
+  .tree-hole-entry span:hover {
+    color: var(--text-light);
+  }
+
+  .tree-hole-box {
+    display: none;
+    margin: 12px auto 0;
+    max-width: 280px;
+    animation: scaleIn 0.4s var(--transition);
+  }
+
+  .tree-hole-box.active { display: block; }
+
+  .tree-hole-box textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 12px 14px;
+    border: 1px solid var(--accent-soft);
+    border-radius: 12px;
+    background: var(--card);
+    color: var(--text);
+    font-size: 14px;
+    font-family: inherit;
+    resize: none;
+    outline: none;
+    line-height: 1.6;
+    letter-spacing: 0.5px;
+  }
+
+  .tree-hole-box textarea::placeholder {
+    color: var(--text-muted);
+  }
+
+  .tree-hole-actions {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 10px;
+  }
+
+  .tree-hole-actions button {
+    font-size: 13px;
+    color: var(--text-muted);
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-family: inherit;
+    padding: 6px 16px;
+    border-radius: 10px;
+    transition: all 0.3s;
+    letter-spacing: 1px;
+  }
+
+  .tree-hole-actions button:hover {
+    background: var(--accent-soft);
+    color: var(--text);
+  }
+
+  .tree-hole-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 6px;
+    opacity: 0.6;
+  }
+
+  /* 树洞日历标记 */
+  .cal-day .tree-dot {
+    display: inline-block;
+    width: 4px;
+    height: 4px;
+    background: var(--accent);
+    border-radius: 50%;
+    margin-left: 2px;
+    vertical-align: middle;
+  }
+
+  /* 树洞查看浮层 */
+  .tree-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .tree-overlay.active { display: flex; }
+
+  .tree-overlay-box {
+    background: var(--white);
+    border-radius: 20px;
+    padding: 28px 24px;
+    max-width: 300px;
+    width: 85%;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.15);
+    animation: scaleIn 0.3s var(--transition);
+  }
+
+  .tree-overlay-title {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    text-align: center;
+    letter-spacing: 1px;
+  }
+
+  .tree-overlay-content {
+    font-size: 15px;
+    color: var(--text);
+    line-height: 1.8;
+    margin-bottom: 20px;
+    white-space: pre-wrap;
+  }
+
+  .tree-overlay-close {
+    display: block;
+    margin: 0 auto;
+    font-size: 13px;
+    color: var(--text-muted);
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-family: inherit;
+    padding: 6px 20px;
+    border-radius: 10px;
+    transition: all 0.3s;
+    letter-spacing: 1px;
+  }
+
+  .tree-overlay-close:hover {
+    background: var(--accent-soft);
+  }
+
   /* 收藏按钮（回应页） */
   .resp-fav-btn {
     display: inline-block;
@@ -1222,6 +1371,17 @@
       <a class="song-link" id="songLink" href="#" target="_blank" rel="noopener">去听 →</a>
     </div>
     <button class="done-btn" onclick="goHome()">完 成</button>
+    <div class="tree-hole-entry" id="treeHoleEntry">
+      <span onclick="toggleTreeHole()">🌳 写进树洞</span>
+    </div>
+    <div class="tree-hole-box" id="treeHoleBox">
+      <textarea id="treeHoleText" maxlength="100" placeholder="想写点什么？"></textarea>
+      <div class="tree-hole-actions">
+        <button onclick="discardTreeHole()">扔掉</button>
+        <button onclick="saveTreeHole()">保存</button>
+      </div>
+      <div class="tree-hole-hint">每天最多 3 条</div>
+    </div>
   </div>
 </div>
 
@@ -1246,6 +1406,15 @@
     <button class="fav-close" onclick="toggleFavOverlay()">← 返回</button>
   </div>
   <div class="fav-list" id="favList"></div>
+</div>
+
+<!-- 树洞查看浮层 -->
+<div class="tree-overlay" id="treeOverlay" onclick="closeTreeOverlay(event)">
+  <div class="tree-overlay-box" onclick="event.stopPropagation()">
+    <div class="tree-overlay-title" id="treeOverlayTitle">🌳 树洞</div>
+    <div class="tree-overlay-content" id="treeOverlayContent"></div>
+    <button class="tree-overlay-close" onclick="closeTreeOverlay()">关 闭</button>
+  </div>
 </div>
 
 <!-- ==================== 设置页 ==================== -->
@@ -1287,6 +1456,29 @@
       </div>
       <button class="toggle ${isGoodnightEnabled() ? 'on' : ''}" onclick="toggleGoodnightSetting(this)"></button>
     </div>
+    <div class="setting-row">
+      <div class="setting-info">
+        <div class="setting-name">社群暗示</div>
+        <div class="setting-desc">"不只你一个人在这"的安静陪伴</div>
+      </div>
+      <button class="toggle ${isSocialHintEnabled() ? 'on' : ''}" onclick="toggleSocialHint(this)"></button>
+    </div>
+    <div class="setting-row" id="driftBottleEntry" onclick="openDriftBottle()">
+      <div class="setting-info">
+        <div class="setting-name">🌊 漂流瓶</div>
+        <div class="setting-desc">匿名写一句话，扔进海里</div>
+      </div>
+      <span style="color:var(--text-muted);font-size:13px">→</span>
+    </div>
+  </div>
+</div>
+
+<!-- 漂流瓶浮层 -->
+<div class="tree-overlay" id="driftOverlay" onclick="closeDriftOverlay(event)">
+  <div class="tree-overlay-box" onclick="event.stopPropagation()" style="max-width:320px">
+    <div class="tree-overlay-title" id="driftTitle">🌊 漂流瓶</div>
+    <div id="driftContent"></div>
+    <button class="tree-overlay-close" onclick="closeDriftOverlay()">关 闭</button>
   </div>
 </div>
 
@@ -1484,6 +1676,11 @@ function toggleGoodnightSetting(btn) {
   }
 }
 
+function toggleSocialHint(btn) {
+  const isOn = btn.classList.toggle('on');
+  localStorage.setItem(SOCIAL_HINT_SETTING_KEY, isOn ? 'on' : 'off');
+}
+
 // ============ 页面管理 ============
 let curPage = 'home';
 
@@ -1535,6 +1732,13 @@ function selectMood(mood, btn) {
   if (quote) quote.classList.add('hidden');
   window._currentMood = mood;
   saveRecord(today(), mood);
+  reportSocialHint('mood', mood);
+  if (mood === 'skip') {
+    reportSocialHint('silentMode');
+  }
+  if (isLateNight()) {
+    reportSocialHint('lateNight');
+  }
   // 立即显示响应（无延迟）
   showResponse(mood);
 }
@@ -1686,6 +1890,11 @@ function renderAIResponse(text, action, emoji) {
   window._currentRespText = favText;
   handleAction(action);
   showSongCard();
+
+  // 社群暗示：不想说
+  if (window._currentMood === 'skip') {
+    setTimeout(() => triggerSocialHint('silentMode'), 2000);
+  }
 }
 
 function favResponse(btn) {
@@ -1790,6 +1999,8 @@ function startBreathingWithType(type) {
         // 全部完成
         roundsEl.textContent = '完成';
         label.textContent = '好了';
+        reportSocialHint('breathing');
+        triggerSocialHint('breathing');
         return;
       }
       currentRound++;
@@ -1847,7 +2058,11 @@ function startAudio(name) {
     fill.style.width = (sec / total * 100) + '%';
     const rem = total - sec;
     timeEl.textContent = Math.floor(rem / 60) + ':' + String(rem % 60).padStart(2, '0');
-    if (sec >= total) stopAudio();
+    if (sec >= total) {
+      stopAudio();
+      reportSocialHint('whiteNoise', name);
+      triggerSocialHint('whiteNoise', name);
+    }
   }, 1000);
 }
 
@@ -1937,6 +2152,256 @@ function removeFav(index) {
   renderFavorites();
 }
 
+// ============ 情绪树洞 ============
+const TREE_HOLE_KEY = 'liubai_tree_hole';
+
+function getTreeHoleData() {
+  try { return JSON.parse(localStorage.getItem(TREE_HOLE_KEY) || '{}'); }
+  catch { return {}; }
+}
+
+function getTodayTreeHoleCount() {
+  const data = getTreeHoleData();
+  const today = new Date().toISOString().slice(0, 10);
+  return (data[today] || []).length;
+}
+
+function toggleTreeHole() {
+  const box = document.getElementById('treeHoleBox');
+  box.classList.toggle('active');
+  if (box.classList.contains('active')) {
+    document.getElementById('treeHoleText').focus();
+  }
+}
+
+function saveTreeHole() {
+  const text = document.getElementById('treeHoleText').value.trim();
+  if (!text) return;
+  if (getTodayTreeHoleCount() >= 3) {
+    document.querySelector('.tree-hole-hint').textContent = '今天已经写了 3 条了，明天再来吧';
+    return;
+  }
+  const today = new Date().toISOString().slice(0, 10);
+  const data = getTreeHoleData();
+  if (!data[today]) data[today] = [];
+  data[today].push({ content: text, ts: Date.now() });
+  localStorage.setItem(TREE_HOLE_KEY, JSON.stringify(data));
+  document.getElementById('treeHoleText').value = '';
+  document.getElementById('treeHoleBox').classList.remove('active');
+}
+
+function discardTreeHole() {
+  document.getElementById('treeHoleText').value = '';
+  document.getElementById('treeHoleBox').classList.remove('active');
+}
+
+function showTreeOverlay(dateKey) {
+  const data = getTreeHoleData();
+  const entries = data[dateKey];
+  if (!entries || !entries.length) return;
+  document.getElementById('treeOverlayTitle').textContent = `🌳 ${dateKey} 的树洞`;
+  document.getElementById('treeOverlayContent').textContent = entries.map(e => e.content).join('\n\n');
+  document.getElementById('treeOverlay').classList.add('active');
+}
+
+function closeTreeOverlay(e) {
+  if (e && e.target !== document.getElementById('treeOverlay')) return;
+  document.getElementById('treeOverlay').classList.remove('active');
+}
+
+// ============ 漂流瓶 ============
+const DRIFT_KEY = 'liubai_drift_bottles';
+const DRIFT_ANON_TAGS = [
+  '某个也醒着的人', '某个路过的人', '某个也在听雨的人',
+  '某个今天也不太好的人', '某个刚刚做完呼吸的人',
+  '某个还在加班的人', '某个早起的人', '某个还没睡的人',
+];
+const DRIFT_CONTENT_POOL = [
+  '今天也辛苦了。', '明天会好的。', '你已经很棒了。',
+  '深呼吸，没事的。', '今天也好好吃饭了吗？',
+  '偶尔停下来也没关系。', '雨会停的。',
+  '谢谢你还在坚持。', '今天也辛苦了，早点休息。',
+  '世界很大，但此刻只需要安静。', '给自己一个拥抱吧。',
+  '不开心的事，睡一觉就过去了。', '你值得被温柔对待。',
+  '慢慢来，比较快。', '今天的月亮很好看。',
+  '喝杯热水吧。', '你不是一个人。',
+  '明天也要好好的。', '一切都会好起来的。',
+  '累了就休息，不用勉强。', '今天的风很舒服。',
+  '你已经很努力了。', '相信自己。',
+  '生活总有不期而遇的温暖。', '愿你被世界温柔以待。',
+];
+
+function getDriftData() {
+  try { return JSON.parse(localStorage.getItem(DRIFT_KEY) || '{"sent":{},"received":{}}'); }
+  catch { return { sent: {}, received: {} }; }
+}
+
+function saveDriftData(data) {
+  localStorage.setItem(DRIFT_KEY, JSON.stringify(data));
+}
+
+function isDriftNewUser() {
+  const records = getRecords();
+  const dates = Object.keys(records).sort();
+  if (dates.length === 0) return true;
+  const first = new Date(dates[0]);
+  const now = new Date();
+  return (now - first) < 3 * 24 * 60 * 60 * 1000;
+}
+
+function getRandomDriftContent() {
+  return DRIFT_CONTENT_POOL[Math.floor(Math.random() * DRIFT_CONTENT_POOL.length)];
+}
+
+function getRandomTag() {
+  return DRIFT_ANON_TAGS[Math.floor(Math.random() * DRIFT_ANON_TAGS.length)];
+}
+
+function openDriftBottle() {
+  if (isDriftNewUser()) {
+    alert('先用几天再来玩漂流瓶吧 🌊');
+    return;
+  }
+  const today = new Date().toISOString().slice(0, 10);
+  const data = getDriftData();
+
+  // 获取今天的接收瓶子
+  const received = data.received[today] || [];
+  while (received.length < 3) {
+    received.push({ content: getRandomDriftContent(), tag: getRandomTag() });
+  }
+  data.received[today] = received;
+  saveDriftData(data);
+
+  // 检查今天是否已发送
+  const sentToday = data.sent[today];
+
+  let html = '<div style="margin-bottom:16px">';
+  received.forEach(b => {
+    html += `<div style="padding:10px 14px;margin-bottom:8px;background:var(--accent-soft);border-radius:12px;font-size:14px;color:var(--text);line-height:1.6">
+      ${b.content}<br><span style="font-size:11px;color:var(--text-muted)">— ${b.tag}</span>
+    </div>`;
+  });
+  html += '</div>';
+
+  if (sentToday) {
+    html += '<div style="text-align:center;font-size:13px;color:var(--text-muted);letter-spacing:0.5px">已经扔了？明天再来。</div>';
+  } else {
+    html += `<div style="margin-top:12px">
+      <textarea id="driftInput" maxlength="50" placeholder="写一句话，扔进海里" style="width:100%;min-height:60px;padding:10px 12px;border:1px solid var(--accent-soft);border-radius:12px;background:var(--card);color:var(--text);font-size:14px;font-family:inherit;resize:none;outline:none;line-height:1.6"></textarea>
+      <div style="text-align:center;margin-top:8px"><button onclick="sendDriftBottle()" style="font-size:13px;color:var(--accent);cursor:pointer;border:none;background:none;font-family:inherit;padding:6px 16px;border-radius:10px;letter-spacing:1px">扔进海里 🌊</button></div>
+    </div>`;
+  }
+
+  document.getElementById('driftContent').innerHTML = html;
+  document.getElementById('driftOverlay').classList.add('active');
+}
+
+function sendDriftBottle() {
+  const input = document.getElementById('driftInput');
+  if (!input) return;
+  const text = input.value.trim();
+  if (!text) return;
+  const today = new Date().toISOString().slice(0, 10);
+  const data = getDriftData();
+  data.sent[today] = { content: text, ts: Date.now() };
+  saveDriftData(data);
+  openDriftBottle(); // 刷新显示
+}
+
+function closeDriftOverlay(e) {
+  if (e && e.target !== document.getElementById('driftOverlay')) return;
+  document.getElementById('driftOverlay').classList.remove('active');
+}
+
+// ============ 社群暗示 ============
+const HINT_COUNT_KEY = 'liubai_hint_count';
+const HINT_DATE_KEY = 'liubai_hint_date';
+const SOCIAL_HINT_SETTING_KEY = 'liubai_social_hint';
+
+function isSocialHintEnabled() {
+  return localStorage.getItem(SOCIAL_HINT_SETTING_KEY) !== 'off';
+}
+
+function getTodayHintCount() {
+  const today = new Date().toISOString().slice(0, 10);
+  if (localStorage.getItem(HINT_DATE_KEY) !== today) {
+    localStorage.setItem(HINT_DATE_KEY, today);
+    localStorage.setItem(HINT_COUNT_KEY, '0');
+    return 0;
+  }
+  return parseInt(localStorage.getItem(HINT_COUNT_KEY) || '0', 10);
+}
+
+function incrementHintCount() {
+  const today = new Date().toISOString().slice(0, 10);
+  localStorage.setItem(HINT_DATE_KEY, today);
+  localStorage.setItem(HINT_COUNT_KEY, String(getTodayHintCount() + 1));
+}
+
+function isNewUserForHint() {
+  const records = getRecords();
+  const dates = Object.keys(records).sort();
+  if (dates.length === 0) return true;
+  const first = new Date(dates[0]);
+  return (new Date() - first) < 3 * 24 * 60 * 60 * 1000;
+}
+
+function isLateNight() {
+  const h = new Date().getHours();
+  return h >= 22 || h < 6;
+}
+
+async function fetchSocialHint(type, value) {
+  try {
+    const res = await fetch(`${API_BASE}/api/social-hint?type=${type}&value=${value || ''}`);
+    const data = await res.json();
+    return data.message || '';
+  } catch {
+    // 离线降级：随机估算
+    const count = Math.floor(Math.random() * 400) + 100;
+    const TEMPLATES = {
+      whiteNoise: '今天有 ' + count + ' 人也选择了听' + (value || '白噪音'),
+      breathing: '今天有 ' + count + ' 人也做了呼吸引导',
+      silentMode: '今天有 ' + count + ' 人也没说话',
+      lateNight: '现在有 ' + count + ' 人也醒着',
+    };
+    return TEMPLATES[type] || '';
+  }
+}
+
+function reportSocialHint(type, value) {
+  fetch(`${API_BASE}/api/social-hint/report`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type, value }),
+  }).catch(() => {});
+}
+
+function showSocialHintEl(message) {
+  // 移除旧的暗示
+  const old = document.querySelector('.social-hint-line');
+  if (old) old.remove();
+  const el = document.createElement('div');
+  el.className = 'social-hint-line';
+  el.style.cssText = 'font-size:13px;color:var(--text-muted);text-align:center;margin:12px 0;opacity:0;transition:opacity 0.6s;letter-spacing:0.5px';
+  el.textContent = message;
+  const doneBtn = document.querySelector('.done-btn');
+  if (doneBtn) doneBtn.parentNode.insertBefore(el, doneBtn);
+  requestAnimationFrame(() => { el.style.opacity = '1'; });
+}
+
+async function triggerSocialHint(type, value) {
+  if (!isSocialHintEnabled()) return;
+  if (isNewUserForHint()) return;
+  if (getTodayHintCount() >= 2) return;
+  const message = await fetchSocialHint(type, value);
+  if (message) {
+    showSocialHintEl(message);
+    incrementHintCount();
+  }
+}
+
 // ============ 日历 ============
 function renderCalendar() {
   const now = new Date();
@@ -1975,15 +2440,25 @@ function renderCalendar() {
 
     const key = `${y}-${String(m+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
     const rec = records[key];
+    const treeData = getTreeHoleData();
+    const hasTree = treeData[key] && treeData[key].length > 0;
 
     if (i > d) {
       el.textContent = i;
       el.classList.add('future');
     } else if (rec && MOOD[rec.mood]) {
-      el.textContent = MOOD[rec.mood].e;
+      el.innerHTML = MOOD[rec.mood].e + (hasTree ? '<span class="tree-dot"></span>' : '');
       el.classList.add('has-data');
+      if (hasTree) {
+        el.style.cursor = 'pointer';
+        el.onclick = () => showTreeOverlay(key);
+      }
     } else {
-      el.innerHTML = '<span class="dot"></span>';
+      el.innerHTML = '<span class="dot"></span>' + (hasTree ? '<span class="tree-dot"></span>' : '');
+      if (hasTree) {
+        el.style.cursor = 'pointer';
+        el.onclick = () => showTreeOverlay(key);
+      }
     }
 
     if (i === d) el.classList.add('is-today');
