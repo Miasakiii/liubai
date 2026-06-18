@@ -26,6 +26,7 @@
 - **社群暗示** — "今天有 327 人也选择了听雨声"，安静陪伴
 - **情绪温度计** — 首页显示本周情绪温度（0-100°）
 - **月度回顾** — 每月 1 日自动生成温暖回顾
+- **周报回顾** — 每周生成情绪总结，安静的力量
 - **情绪趋势** — 饼图 + 折线图，本周/本月维度，温暖文字解读
 - **7 天留白练习** — 引导式冥想/呼吸课程，每天 2 分钟
 - **情绪日记** — 500 字长文书写，AI 温暖回应
@@ -50,19 +51,34 @@ AI：  LLM API（通义千问 / GPT / DeepSeek）
 src/
 ├── index.html              ← 纯 HTML 结构（5 个页面 + 5 个底部导航）
 ├── styles/
-│   └── main.css            ← 全部样式（含趋势/练习/日记页面）
+│   └── main.css            ← 全部样式（含趋势/练习/日记/周报页面）
 ├── js/
 │   ├── config.js           ← API 地址、Supabase 配置、Storage key
+│   ├── utils.js            ← 工具函数（escapeHtml XSS 防护）
 │   ├── storage.js          ← LocalStorage 读写 + 云端同步
 │   ├── supabase.js         ← Supabase 客户端、匿名登录、数据迁移
 │   ├── data.js             ← 静态数据（情绪、歌单、节气、离线文案）
 │   ├── ui.js               ← 页面切换、日历、晚安模式
 │   ├── features.js         ← 呼吸引导、音频、树洞、漂流瓶、社群暗示
-│   ├── features2.js        ← 趋势图表、7 天练习、情绪日记
+│   ├── features2.js        ← 趋势图表、7 天练习、情绪日记、周报
 │   ├── ai.js               ← AI 回应、天气、月度回顾
 │   └── app.js              ← 主入口、事件绑定、初始化
-├── server.js               ← AI 后端服务
+├── server.js               ← AI 后端服务（含速率限制）
 └── audio/                  ← 白噪音音频文件
+```
+
+### API 端点
+
+```text
+api/
+├── _shared.js              ← 共享模块（callLLM、离线回应库）
+├── respond.js              ← 情绪回应 + 日记模式
+├── calendar.js             ← 月度回顾
+├── weekly.js               ← 周报回顾
+├── seasonal.js             ← 节气关怀
+├── weather.js              ← 天气查询
+├── social-hint.js          ← 社群暗示
+└── health.js               ← 健康检查
 ```
 
 ## 快速启动

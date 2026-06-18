@@ -4,6 +4,42 @@
 
 ---
 
+## 2026-06-18
+
+### 🔒 安全修复
+
+- **XSS 防护** — 创建 `utils.js` 共享 `escapeHtml` 工具函数
+  - 修复 `openDriftBottle` 漂流瓶内容未转义
+  - 修复 `renderAIResponse` AI 输出未转义
+  - 修复 `renderFavorites` 收藏文本未转义
+- **API 错误处理** — 所有端点不再返回内部错误信息，只返回通用错误
+- **API 速率限制** — 每 IP 每分钟最多 20 次请求，防止 LLM API 额度消耗
+- **health.js 精简** — 移除 model、hasApiKey、env 等敏感字段
+
+### 🆕 新功能
+
+- **周报回顾** — 情绪趋势页面添加「本周回顾」按钮，AI 生成本周情绪总结
+
+### 🏗️ 架构优化
+
+- **代码整合** — `api/respond.js` 重构使用 `_shared.js`（204→75 行，-63%）
+- **离线回应库统一** — 三处重复的 `OFFLINE_RESPONSES` 统一为单一数据源
+- **事件委托** — `renderPracticePage` 改用事件委托替代内联 onclick
+- **超时处理** — `weather.js` 添加 5 秒请求超时
+
+### 🧹 清理
+
+- **移除未使用的 toggle** — 设置页移除 4 个未实现的开关（温柔提醒、呼吸引导、白噪音、情绪周报）
+- **新增工具模块** — `src/js/utils.js` 提供 XSS 防护函数
+
+### 📦 配置
+
+- **package.json** — 修正 `main` 指向 `src/server.js`，添加 `start`/`dev` 脚本
+- **Service Worker** — 缓存版本更新到 v3，添加 `features2.js`，移除 `config.js`
+- **.gitignore** — 排除 `ralph/`、`.mimocode/`、`deploy/`、`android/`、`*.apk`
+
+---
+
 ## 2026-06-13
 
 ### 🆕 新功能
