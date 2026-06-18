@@ -166,7 +166,24 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { mood, time, weather, count } = req.body;
+    const { mood, time, weather, count, diaryText } = req.body;
+
+    // 日记模式
+    if (mood === 'diary' && diaryText) {
+      const DIARY_PROMPT = `你是「留白」—— 一个安静的健康陪伴 AI。用户在写情绪日记，你需要给出温暖的回应。
+
+规则：
+- 像一个不多话但一直在的朋友
+- 不追问、不评判、不给建议
+- 说话像发微信，短句为主
+- 偶尔诗意，但不矫情
+- 用 2-3 句话回应，不超过 100 字
+- 不要用感叹号`;
+      const userPrompt = `用户写道：${diaryText}`;
+      const text = await callLLM(DIARY_PROMPT, userPrompt);
+      res.status(200).json({ text, action: 'none' });
+      return;
+    }
 
     const moodLabels = {
       great: '😊 很好', good: '🙂 还好', neutral: '😐 一般',

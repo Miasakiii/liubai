@@ -1,0 +1,28 @@
+{
+  "appId": "com.liubai.app",
+  "appName": "留白",
+  "webDir": "src",
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "StatusBar": {
+      "style": "LIGHT",
+      "backgroundColor": "#f7f5f0"
+    },
+    "SplashScreen": {
+      "launchAutoHide": true,
+      "launchShowDuration": 1500,
+      "backgroundColor": "#f7f5f0",
+      "showSpinner": false,
+      "androidSplashResourceName": "splash",
+      "androidScaleType": "CENTER_CROP"
+    },
+    "Haptics": {},
+    "App": {}
+  },
+  "android": {
+    "allowMixedContent": true,
+    "backgroundColor": "#f7f5f0"
+  }
+}

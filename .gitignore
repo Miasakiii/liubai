@@ -1,26 +1,36 @@
-# 忽略docs文件夹
+# ============ 敏感配置 ============
+.env
+.env.local
+.env.*
+src/js/config.js
+
+# ============ 规划/开发工具 ============
+ralph/
+.mimocode/
+
+# ============ 部署脚本（服务器配置） ============
+deploy/
+
+# ============ 编译产物 ============
+*.apk
+android/
+!android/app/src/main/assets/public/
+
+# ============ 文档/演示 ============
 docs/
 content/
-
-# 忽略Office文档
 *.pptx
 *.docx
 *.xlsx
-
-# 忽略商业计划和路线图（内部文档）
 BUSINESS_PLAN.md
 ROADMAP.md
-
-# 忽略本地开发/演示文件
 qrcode.html
 start.bat
 打开留白.html
 留白 - 体验二维码.png
 留白海报.png
 
-# 常用忽略项
+# ============ 常用忽略项 ============
 node_modules/
 .DS_Store
 *.log
-.env
-.env.local
