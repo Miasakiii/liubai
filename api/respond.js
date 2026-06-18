@@ -197,6 +197,7 @@ module.exports = async (req, res) => {
 
     res.status(200).json(result);
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    console.error('[API Error] respond:', e);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 };

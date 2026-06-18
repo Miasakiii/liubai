@@ -1,6 +1,7 @@
 import { getRecords, isFavorited, toggleFavorite, getTreeHoleData } from './storage.js';
 import { MOOD, getTodayQuote, SEASONS } from './data.js';
 import { renderTrends, renderPracticePage, renderDiaryList } from './features2.js';
+import { escapeHtml } from './utils.js';
 
 // ============ 晚安模式 ============
 export function isGoodnightTime() {
@@ -109,8 +110,8 @@ export function renderFavorites() {
   }
   list.innerHTML = favs.map((f, i) => `
     <div class="fav-item" style="animation-delay:${i * 0.05}s">
-      <div class="fav-item-text">${f.text}</div>
-      <span class="fav-item-date">${f.date}</span>
+      <div class="fav-item-text">${escapeHtml(f.text)}</div>
+      <span class="fav-item-date">${escapeHtml(f.date)}</span>
       <button class="fav-item-remove" onclick="removeFav(${i})">取消收藏</button>
     </div>
   `).join('');

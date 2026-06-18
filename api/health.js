@@ -18,9 +18,6 @@ module.exports = async (req, res) => {
 
   res.status(200).json({
     status: 'ok',
-    ai: apiKey ? 'connected' : 'offline',
-    model: process.env.AI_MODEL || 'qwen-plus',
-    hasApiKey: !!apiKey,
-    env: process.env.NODE_ENV || 'production'
+    ai: apiKey ? 'connected' : 'offline'
   });
 };

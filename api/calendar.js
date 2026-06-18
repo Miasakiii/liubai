@@ -17,6 +17,7 @@ module.exports = async (req, res) => {
 
     res.status(200).json({ text: text.replace(/^ACTION:.*/m, '').trim() });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    console.error('[API Error] calendar:', e);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 };

@@ -2,6 +2,7 @@ import { API_BASE, HINT_COUNT_KEY, HINT_DATE_KEY, SOCIAL_HINT_SETTING_KEY } from
 import { getRecords } from './storage.js';
 import { BREATH_TYPES, AUDIO_URLS, AUDIO_ICONS, DRIFT_ANON_TAGS, DRIFT_CONTENT_POOL } from './data.js';
 import { getDriftData, saveDriftData, getTreeHoleData, saveTreeHoleEntry, getTodayTreeHoleCount } from './storage.js';
+import { escapeHtml } from './utils.js';
 
 // ============ 呼吸引导 ============
 export function startBreathing() {
@@ -242,7 +243,7 @@ export function openDriftBottle() {
   let html = '<div style="margin-bottom:16px">';
   received.forEach(b => {
     html += `<div style="padding:10px 14px;margin-bottom:8px;background:var(--accent-soft);border-radius:12px;font-size:14px;color:var(--text);line-height:1.6">
-      ${b.content}<br><span style="font-size:11px;color:var(--text-muted)">— ${b.tag}</span>
+      ${escapeHtml(b.content)}<br><span style="font-size:11px;color:var(--text-muted)">— ${escapeHtml(b.tag)}</span>
     </div>`;
   });
   html += '</div>';

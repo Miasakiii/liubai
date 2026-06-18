@@ -1,6 +1,7 @@
 import { getRecords, today } from './storage.js';
 import { MOOD } from './data.js';
 import { API_BASE } from './config.js';
+import { escapeHtml } from './utils.js';
 
 // ============ 情绪趋势图表 ============
 const MOOD_COLORS = {
@@ -466,12 +467,6 @@ export function deleteDiary(id) {
   const entries = getDiaryData().filter(e => e.id !== id);
   localStorage.setItem(DIARY_KEY, JSON.stringify(entries));
   renderDiaryList();
-}
-
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
 }
 
 // 字数统计

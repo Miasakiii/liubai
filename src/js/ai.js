@@ -2,6 +2,7 @@ import { API_BASE } from './config.js';
 import { getRecords, today, todayCount, getMonthlyReviewData, saveMonthlyReviewData } from './storage.js';
 import { MOOD, OFFLINE_RESPONSES } from './data.js';
 import { isGoodnightEnabled, isGoodnightTime } from './ui.js';
+import { escapeHtml } from './utils.js';
 
 // ============ 离线回应 ============
 export function getOfflineData(mood) {
@@ -109,7 +110,7 @@ export function renderAIResponse(text, action, emoji) {
   const favText = lines.join('\n');
   const fav = isFavoritedSync(favText);
   textEl.innerHTML = lines.map((l, i) =>
-    `<div class="resp-line" style="animation-delay:${0.4 + i * 0.7}s">${l}</div>`
+    `<div class="resp-line" style="animation-delay:${0.4 + i * 0.7}s">${escapeHtml(l)}</div>`
   ).join('') + `<button class="resp-fav-btn ${fav ? 'active' : ''}" style="animation-delay:${0.4 + lines.length * 0.7}s" onclick="favResponse(this)">${fav ? '❤️ 已收藏' : '♡ 喜欢'}</button>`;
 
   window._currentRespText = favText;
