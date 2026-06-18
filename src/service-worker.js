@@ -1,15 +1,15 @@
 // 留白 Service Worker
-const CACHE_NAME = 'liubai-v1';
+const CACHE_NAME = 'liubai-v3';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/styles/main.css',
-  '/js/config.js',
   '/js/storage.js',
   '/js/supabase.js',
   '/js/data.js',
   '/js/ui.js',
   '/js/features.js',
+  '/js/features2.js',
   '/js/ai.js',
   '/js/app.js',
   '/manifest.json',
