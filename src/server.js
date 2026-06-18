@@ -23,6 +23,39 @@ loadEnv();
 
 const PORT = 3001;
 
+// ============ 速率限制 ============
+const RATE_LIMIT_WINDOW = 60 * 1000; // 1 分钟窗口
+const RATE_LIMIT_MAX = 20; // 每窗口最大请求数
+const rateLimitMap = new Map(); // IP -> { count, resetTime }
+
+function checkRateLimit(ip) {
+  const now = Date.now();
+  let record = rateLimitMap.get(ip);
+
+  if (!record || now > record.resetTime) {
+    record = { count: 1, resetTime: now + RATE_LIMIT_WINDOW };
+    rateLimitMap.set(ip, record);
+    return true;
+  }
+
+  if (record.count >= RATE_LIMIT_MAX) {
+    return false;
+  }
+
+  record.count++;
+  return true;
+}
+
+// 定期清理过期记录（每 5 分钟）
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, record] of rateLimitMap.entries()) {
+    if (now > record.resetTime) {
+      rateLimitMap.delete(ip);
+    }
+  }
+}, 5 * 60 * 1000);
+
 // ============ AI 配置 ============
 // 支持 OpenAI 兼容 API（通义千问、GPT、DeepSeek 等）
 const AI_CONFIG = {
@@ -371,6 +404,17 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // 获取客户端 IP
+  const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+
+  // API 速率限制检查（仅对 LLM 相关端点）
+  const llmEndpoints = ['/api/respond', '/api/weekly', '/api/seasonal', '/api/calendar'];
+  if (llmEndpoints.includes(req.url) && !checkRateLimit(clientIp)) {
+    res.writeHead(429, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: '请求过于频繁，请稍后再试' }));
+    return;
+  }
+
   if (req.method === 'POST' && req.url === '/api/respond') {
     let body = '';
     req.on('data', chunk => body += chunk);
@@ -409,8 +453,9 @@ const server = http.createServer((req, res) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(result));
       } catch (e) {
+        console.error('[API Error] respond:', e);
         res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: e.message }));
+        res.end(JSON.stringify({ error: '服务器内部错误' }));
       }
     });
     return;
@@ -435,8 +480,9 @@ const server = http.createServer((req, res) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ text: text.replace(/^ACTION:.*/m, '').trim() }));
       } catch (e) {
+        console.error('[API Error] weekly:', e);
         res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: e.message }));
+        res.end(JSON.stringify({ error: '服务器内部错误' }));
       }
     });
     return;
@@ -454,8 +500,9 @@ const server = http.createServer((req, res) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ text: text.replace(/^ACTION:.*/m, '').trim() }));
       } catch (e) {
+        console.error('[API Error] seasonal:', e);
         res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: e.message }));
+        res.end(JSON.stringify({ error: '服务器内部错误' }));
       }
     });
     return;
@@ -473,8 +520,9 @@ const server = http.createServer((req, res) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ text: text.replace(/^ACTION:.*/m, '').trim() }));
       } catch (e) {
+        console.error('[API Error] calendar:', e);
         res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: e.message }));
+        res.end(JSON.stringify({ error: '服务器内部错误' }));
       }
     });
     return;
