@@ -22,7 +22,8 @@ import {
 import {
   switchTrendsTab, renderTrends,
   renderPracticePage, openPracticeDay, startPracticeExercise, closePracticeOverlay,
-  saveDiary, deleteDiary, renderDiaryList, initDiaryInput
+  saveDiary, deleteDiary, renderDiaryList, initDiaryInput,
+  fetchWeeklyReview, closeWeeklyOverlay
 } from './features2.js';
 
 // ============ 暴露全局函数供 HTML onclick 使用 ============
@@ -54,6 +55,8 @@ window.startPracticeExercise = startPracticeExercise;
 window.closePracticeOverlay = closePracticeOverlay;
 window.saveDiary = saveDiary;
 window.deleteDiary = deleteDiary;
+window.fetchWeeklyReview = fetchWeeklyReview;
+window.closeWeeklyOverlay = closeWeeklyOverlay;
 
 // 暴露内部引用供模块间调用（避免循环依赖）
 window._handleAction = handleAction;

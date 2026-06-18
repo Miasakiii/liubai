@@ -290,7 +290,7 @@ export function renderPracticePage() {
   container.innerHTML = PRACTICE_DAYS.map((day, i) => {
     const isCompleted = completed.includes(i);
     return `
-      <div class="practice-day-card ${isCompleted ? 'completed' : ''}" onclick="openPracticeDay(${i})">
+      <div class="practice-day-card ${isCompleted ? 'completed' : ''}" data-index="${i}">
         <div class="practice-day-num">${isCompleted ? '✓' : i + 1}</div>
         <div class="practice-day-info">
           <div class="practice-day-title">${day.title}</div>
@@ -299,6 +299,15 @@ export function renderPracticePage() {
       </div>
     `;
   }).join('');
+
+  // 使用事件委托
+  container.onclick = (e) => {
+    const card = e.target.closest('.practice-day-card');
+    if (card) {
+      const index = parseInt(card.dataset.index, 10);
+      openPracticeDay(index);
+    }
+  };
 }
 
 export function openPracticeDay(index) {
@@ -467,6 +476,51 @@ export function deleteDiary(id) {
   const entries = getDiaryData().filter(e => e.id !== id);
   localStorage.setItem(DIARY_KEY, JSON.stringify(entries));
   renderDiaryList();
+}
+
+// ============ 周报功能 ============
+export async function fetchWeeklyReview() {
+  const overlay = document.getElementById('weeklyOverlay');
+  const content = document.getElementById('weeklyContent');
+
+  if (!overlay || !content) return;
+
+  // 显示加载状态
+  content.textContent = '正在生成本周回顾...';
+  overlay.classList.add('active');
+
+  try {
+    // 获取本周情绪记录
+    const records = getRecords();
+    const now = new Date();
+    const dayOfWeek = now.getDay() || 7; // 周日为 7
+    const weekRecords = [];
+
+    for (let i = 1; i <= 7; i++) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - (dayOfWeek - i));
+      const key = d.toISOString().slice(0, 10);
+      weekRecords.push(records[key]?.mood || null);
+    }
+
+    const response = await fetch(`${API_BASE}/api/weekly`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ records: weekRecords })
+    });
+
+    if (!response.ok) throw new Error('请求失败');
+
+    const data = await response.json();
+    content.textContent = data.text || '本周还没有太多记录，下周继续吧。';
+  } catch (e) {
+    content.textContent = '本周回顾生成失败，请稍后再试。';
+  }
+}
+
+export function closeWeeklyOverlay() {
+  const overlay = document.getElementById('weeklyOverlay');
+  if (overlay) overlay.classList.remove('active');
 }
 
 // 字数统计

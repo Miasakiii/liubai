@@ -261,6 +261,18 @@
       <div class="trend-insight" id="trendInsight"></div>
     </div>
 
+    <!-- 周报按钮（仅本周 tab 可见） -->
+    <button class="weekly-btn" id="weeklyBtn" onclick="fetchWeeklyReview()">📖 本周回顾</button>
+
+    <!-- 周报浮层 -->
+    <div class="weekly-overlay" id="weeklyOverlay">
+      <div class="weekly-overlay-box">
+        <div class="weekly-overlay-title">📖 本周回顾</div>
+        <div class="weekly-overlay-content" id="weeklyContent"></div>
+        <button class="weekly-overlay-close" onclick="closeWeeklyOverlay()">关 闭</button>
+      </div>
+    </div>
+
     <button class="trends-back" onclick="goHome()">← 回到今天</button>
   </div>
 </div>

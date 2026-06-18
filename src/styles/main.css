@@ -1906,3 +1906,81 @@
     padding: 8px;
     letter-spacing: 1px;
   }
+
+  /* ============ 周报 ============ */
+  .weekly-btn {
+    display: block;
+    margin: 16px auto 0;
+    font-size: 13px;
+    color: var(--accent);
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-family: inherit;
+    padding: 8px 16px;
+    letter-spacing: 1px;
+    border-radius: 12px;
+    transition: background 0.2s;
+  }
+
+  .weekly-btn:hover {
+    background: var(--accent-soft);
+  }
+
+  .weekly-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+
+  .weekly-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .weekly-overlay-box {
+    background: var(--card);
+    border-radius: 20px;
+    padding: 24px;
+    width: 90%;
+    max-width: 360px;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+
+  .weekly-overlay-title {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 16px;
+    text-align: center;
+    letter-spacing: 2px;
+  }
+
+  .weekly-overlay-content {
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.8;
+    white-space: pre-wrap;
+    margin-bottom: 20px;
+  }
+
+  .weekly-overlay-close {
+    display: block;
+    margin: 0 auto;
+    font-size: 13px;
+    color: var(--text-light);
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-family: inherit;
+    padding: 8px 16px;
+    letter-spacing: 1px;
+  }

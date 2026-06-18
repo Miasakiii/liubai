@@ -55,8 +55,8 @@ module.exports = async (req, res) => {
 };
 
 function fetchJSON(url) {
-  return new Promise((resolve, reject) => {
-    https.get(url, (resp) => {
+  return new Promise((resolve) => {
+    const req = https.get(url, (resp) => {
       let data = '';
       resp.on('data', chunk => data += chunk);
       resp.on('end', () => {
@@ -64,5 +64,11 @@ function fetchJSON(url) {
         catch { resolve(null); }
       });
     }).on('error', () => resolve(null));
+
+    // 5 秒超时
+    req.setTimeout(5000, () => {
+      req.destroy();
+      resolve(null);
+    });
   });
 }
