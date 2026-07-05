@@ -23,6 +23,94 @@ loadEnv();
 
 const PORT = 3001;
 
+// ============ 日志工具 ============
+const isProduction = process.env.NODE_ENV === 'production';
+
+function sanitizeError(error) {
+  if (isProduction) {
+    // 生产环境只记录错误类型和消息，不记录堆栈
+    return {
+      type: error.constructor.name,
+      message: error.message?.substring(0, 200) // 限制消息长度
+    };
+  }
+  // 开发环境记录完整错误
+  return error;
+}
+
+function logError(endpoint, error) {
+  const sanitized = sanitizeError(error);
+  console.error(`[API Error] ${endpoint}:`, sanitized);
+}
+
+// ============ 输入验证 ============
+const VALID_MOODS = ['great', 'good', 'neutral', 'low', 'bad', 'skip', 'diary'];
+const MAX_DIARY_LENGTH = 2000;
+const MAX_REQUEST_BODY_SIZE = 1024 * 1024; // 1MB
+
+function validateMoodInput(body) {
+  const { mood, diaryText, count } = body;
+
+  // 验证 mood
+  if (!mood || !VALID_MOODS.includes(mood)) {
+    return { valid: false, error: '无效的情绪参数' };
+  }
+
+  // 验证日记文本
+  if (mood === 'diary') {
+    if (!diaryText || typeof diaryText !== 'string') {
+      return { valid: false, error: '日记模式需要提供日记内容' };
+    }
+    if (diaryText.length > MAX_DIARY_LENGTH) {
+      return { valid: false, error: `日记内容不能超过 ${MAX_DIARY_LENGTH} 字` };
+    }
+  }
+
+  // 验证 count
+  if (count !== undefined && (typeof count !== 'number' || count < 1 || count > 100)) {
+    return { valid: false, error: '无效的 count 参数' };
+  }
+
+  return { valid: true };
+}
+
+function validateWeeklyInput(body) {
+  const { records } = body;
+
+  if (!Array.isArray(records)) {
+    return { valid: false, error: 'records 必须是数组' };
+  }
+
+  if (records.length !== 7) {
+    return { valid: false, error: 'records 数组长度必须为 7' };
+  }
+
+  const validMoods = ['great', 'good', 'neutral', 'low', 'bad', 'skip', ''];
+  for (const mood of records) {
+    if (!validMoods.includes(mood)) {
+      return { valid: false, error: 'records 包含无效的情绪值' };
+    }
+  }
+
+  return { valid: true };
+}
+
+function validateSeasonalInput(body) {
+  const { season, weather, time } = body;
+
+  if (season && typeof season !== 'string') {
+    return { valid: false, error: 'season 必须是字符串' };
+  }
+  if (weather && typeof weather !== 'string') {
+    return { valid: false, error: 'weather 必须是字符串' });
+  }
+  if (time && typeof time !== 'string') {
+    return { valid: false, error: 'time 必须是字符串' };
+  }
+
+  return { valid: true };
+}
+
 // ============ 速率限制 ============
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1 分钟窗口
 const RATE_LIMIT_MAX = 20; // 每窗口最大请求数
@@ -391,10 +479,29 @@ function parseAIOutput(raw) {
   };
 }
 
+// ============ CORS 配置 ============
+const ALLOWED_ORIGINS = [
+  'https://liubai.wctgrzpj.cn',
+  'http://localhost:3001',
+  'http://127.0.0.1:3001',
+  'capacitor://localhost',
+  'http://localhost',
+];
+
+function getCorsOrigin(req) {
+  const origin = req.headers.origin;
+  if (ALLOWED_ORIGINS.includes(origin)) {
+    return origin;
+  }
+  // 对于非浏览器请求（如 curl），允许无 origin
+  return ALLOWED_ORIGINS[0];
+}
+
 // ============ HTTP 服务 ============
 const server = http.createServer((req, res) => {
   // CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const corsOrigin = getCorsOrigin(req);
+  res.setHeader('Access-Control-Allow-Origin', corsOrigin);
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
@@ -407,9 +514,8 @@ const server = http.createServer((req, res) => {
   // 获取客户端 IP
   const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
 
-  // API 速率限制检查（仅对 LLM 相关端点）
-  const llmEndpoints = ['/api/respond', '/api/weekly', '/api/seasonal', '/api/calendar'];
-  if (llmEndpoints.includes(req.url) && !checkRateLimit(clientIp)) {
+  // API 速率限制检查（对所有 API 端点）
+  if (req.url.startsWith('/api/') && !checkRateLimit(clientIp)) {
     res.writeHead(429, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: '请求过于频繁，请稍后再试' }));
     return;
@@ -417,10 +523,26 @@ const server = http.createServer((req, res) => {
 
   if (req.method === 'POST' && req.url === '/api/respond') {
     let body = '';
-    req.on('data', chunk => body += chunk);
+    req.on('data', chunk => {
+      body += chunk;
+      if (body.length > MAX_REQUEST_BODY_SIZE) {
+        res.writeHead(413, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: '请求体过大' }));
+        body = null;
+      }
+    });
     req.on('end', async () => {
+      if (body === null) return;
       try {
-        const { mood, time, weather, count, diaryText } = JSON.parse(body);
+        const parsed = JSON.parse(body);
+        const validation = validateMoodInput(parsed);
+        if (!validation.valid) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: validation.error }));
+          return;
+        }
+
+        const { mood, time, weather, count, diaryText } = parsed;
 
         // 日记模式
         if (mood === 'diary' && diaryText) {
@@ -453,7 +575,7 @@ const server = http.createServer((req, res) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(result));
       } catch (e) {
-        console.error('[API Error] respond:', e);
+        logError('respond', e);
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: '服务器内部错误' }));
       }
@@ -463,10 +585,26 @@ const server = http.createServer((req, res) => {
 
   if (req.method === 'POST' && req.url === '/api/weekly') {
     let body = '';
-    req.on('data', chunk => body += chunk);
+    req.on('data', chunk => {
+      body += chunk;
+      if (body.length > MAX_REQUEST_BODY_SIZE) {
+        res.writeHead(413, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: '请求体过大' }));
+        body = null;
+      }
+    });
     req.on('end', async () => {
+      if (body === null) return;
       try {
-        const { records } = JSON.parse(body);
+        const parsed = JSON.parse(body);
+        const validation = validateWeeklyInput(parsed);
+        if (!validation.valid) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: validation.error }));
+          return;
+        }
+
+        const { records } = parsed;
         const moodEmojis = {
           great: '😊', good: '🙂', neutral: '😐', low: '😔', bad: '😫', skip: '🌙'
         };
@@ -480,7 +618,7 @@ const server = http.createServer((req, res) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ text: text.replace(/^ACTION:.*/m, '').trim() }));
       } catch (e) {
-        console.error('[API Error] weekly:', e);
+        logError('weekly', e);
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: '服务器内部错误' }));
       }
@@ -490,17 +628,33 @@ const server = http.createServer((req, res) => {
 
   if (req.method === 'POST' && req.url === '/api/seasonal') {
     let body = '';
-    req.on('data', chunk => body += chunk);
+    req.on('data', chunk => {
+      body += chunk;
+      if (body.length > MAX_REQUEST_BODY_SIZE) {
+        res.writeHead(413, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: '请求体过大' }));
+        body = null;
+      }
+    });
     req.on('end', async () => {
+      if (body === null) return;
       try {
-        const { season, weather, time } = JSON.parse(body);
+        const parsed = JSON.parse(body);
+        const validation = validateSeasonalInput(parsed);
+        if (!validation.valid) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: validation.error }));
+          return;
+        }
+
+        const { season, weather, time } = parsed;
         const userPrompt = `当前节气/时间：${season || '未知'}\n天气：${weather || '未知'}\n时间：${time || '未知'}`;
         const text = await callLLM(PROMPTS.seasonal, userPrompt);
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ text: text.replace(/^ACTION:.*/m, '').trim() }));
       } catch (e) {
-        console.error('[API Error] seasonal:', e);
+        logError('seasonal', e);
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: '服务器内部错误' }));
       }
@@ -510,17 +664,47 @@ const server = http.createServer((req, res) => {
 
   if (req.method === 'POST' && req.url === '/api/calendar') {
     let body = '';
-    req.on('data', chunk => body += chunk);
+    req.on('data', chunk => {
+      body += chunk;
+      if (body.length > MAX_REQUEST_BODY_SIZE) {
+        res.writeHead(413, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: '请求体过大' }));
+        body = null;
+      }
+    });
     req.on('end', async () => {
+      if (body === null) return;
       try {
-        const { month, records, totalDays } = JSON.parse(body);
+        const parsed = JSON.parse(body);
+        const { month, records, totalDays } = parsed;
+
+        // 验证 month
+        if (!month || typeof month !== 'string' || month.length > 20) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: '无效的 month 参数' }));
+          return;
+        }
+
+        // 验证 records
+        if (!records || typeof records !== 'string' || records.length > 5000) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: '无效的 records 参数' }));
+          return;
+        }
+
+        // 验证 totalDays
+        if (totalDays !== undefined && (typeof totalDays !== 'number' || totalDays < 1 || totalDays > 31)) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: '无效的 totalDays 参数' }));
+          return;
+        }
         const userPrompt = `用户 ${month} 月情绪记录：\n${records}\n记录天数：${totalDays} 天\n\n请生成月度回顾。`;
         const text = await callLLM(PROMPTS.calendar, userPrompt);
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ text: text.replace(/^ACTION:.*/m, '').trim() }));
       } catch (e) {
-        console.error('[API Error] calendar:', e);
+        logError('calendar', e);
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: '服务器内部错误' }));
       }
